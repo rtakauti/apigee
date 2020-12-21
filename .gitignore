@@ -1,0 +1,14 @@
+backup/
+recover/
+create/
+change/
+revision/
+remove/
+update/
+delete/
+swaggers/
+bundles/
+zips/
+.idea/
+env_var.sh
+desktop.ini
