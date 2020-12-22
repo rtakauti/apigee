@@ -10,7 +10,7 @@ function createBundle() {
     cd swaggers || exit
     for file in *.json; do
       title=$(jq '.info.title' "$file" | sed 's/ /-/g')
-      jq ".info.title=${title}" "$file" >"$TEMP"
+      jq --argjson title "$title" '.info.title=$title' "$file" >"$TEMP"
       cat "$TEMP" >"$file"
       title="${title//\"/}"
       createMainXML "$file" "$title"
@@ -36,8 +36,8 @@ function createMainXML() {
   basepath="/$ORG/$title/$version"
   BUNDLE_DIR="$ROOT_DIR/bundles/$title/apiproxy"
   mkdir -p "$BUNDLE_DIR"
-  createTargetXML
   createProxyXML "$basepath"
+  createTargetXML
   createNotFoundPolicy
   cat <<EOF >"$BUNDLE_DIR/${title}.xml"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -62,32 +62,6 @@ EOF
     cd "$ROOT_DIR/zips" || exit
     7z a -r "$title".zip "$BUNDLE_DIR" >/dev/null
   )
-}
-
-function createTargetXML() {
-  local url
-  local target_dir
-
-  url=$(jq '.servers[0].url' "$file" | sed 's/null//g' | sed 's/\"//g')
-  target_dir="$BUNDLE_DIR/targets"
-  mkdir -p "$target_dir"
-  cat <<EOF >"$target_dir/default.xml"
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<TargetEndpoint name="default">
-  <PreFlow name="PreFlow">
-    <Request/>
-    <Response/>
-  </PreFlow>
-  <Flows/>
-  <PostFlow name="PostFlow">
-    <Request/>
-    <Response/>
-  </PostFlow>
-  <HTTPTargetConnection>
-    <URL>$url</URL>
-  </HTTPTargetConnection>
-</TargetEndpoint>
-EOF
 }
 
 function createProxyXML() {
@@ -127,12 +101,39 @@ function createFlowXML() {
 
   printf "<Flows>\n"
   for endpoint in $(jq '.paths | keys[]' "$file"); do
-    for verb in $(jq ".paths.$endpoint | keys[]" "$file"); do
-      printf "\t<Flow name=%s>\n\t\t<Description>%s</Description>\n\t\t<Request/>\n\t\t<Response/>\n\t\t<Condition>(proxy.pathsuffix MatchesPath %s) and (request.verb = %s)</Condition>\n\t</Flow>\n" "$endpoint" "$(jq ".paths.$endpoint.$verb.description" "$file")" "$(echo "$endpoint" | sed 's/{[^}]*}/\*/g')" "${verb^^}"
+    for verb in $(jq --argjson endpoint "$endpoint" '.paths[$endpoint] | keys[]' "$file"); do
+      description=$(jq --argjson endpoint "$endpoint" --argjson verb "$verb" '.paths[$endpoint][$verb].description' "$file" | sed 's/\"//g')
+      printf "\t<Flow name=%s>\n\t\t<Description>%s</Description>\n\t\t<Request/>\n\t\t<Response/>\n\t\t<Condition>(proxy.pathsuffix MatchesPath %s) and (request.verb = %s)</Condition>\n\t</Flow>\n" "$(echo "$endpoint" | sed ':a;N;$!ba;s/\n//g')" "$description" "$(echo "$endpoint" | sed 's/{[^}]*}/\*/g')" "$(echo "${verb^^}" | sed ':a;N;$!ba;s/\n//g')"
     done
   done
   printf "\t<Flow name=\"NotFound\">\n\t\t<Request>\n\t\t\t<Step>\n\t\t\t\t<Name>RF-NotFound</Name>\n\t\t\t</Step>\n\t\t</Request>\n\t</Flow>\n"
   printf "\t</Flows>\n"
+}
+
+function createTargetXML() {
+  local url
+  local target_dir
+
+  url=$(jq '.servers[0].url' "$file" | sed 's/null//g' | sed 's/\"//g')
+  target_dir="$BUNDLE_DIR/targets"
+  mkdir -p "$target_dir"
+  cat <<EOF >"$target_dir/default.xml"
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TargetEndpoint name="default">
+  <PreFlow name="PreFlow">
+    <Request/>
+    <Response/>
+  </PreFlow>
+  <Flows/>
+  <PostFlow name="PostFlow">
+    <Request/>
+    <Response/>
+  </PostFlow>
+  <HTTPTargetConnection>
+    <URL>$url</URL>
+  </HTTPTargetConnection>
+</TargetEndpoint>
+EOF
 }
 
 function createNotFoundPolicy() {
