@@ -1,27 +1,11 @@
 #!/usr/bin/env bash
 
-function status() {
-  local log
-
-  log="$ACTIVITY/$DATE/$CONTEXT"_log.txt
-
-  if [ "${CURL_RESULT}" -eq 200 ] || [ "${CURL_RESULT}" -eq 204 ] || [ "${CURL_RESULT}" -eq 201 ]; then
-    echo success "$*" | tee -a "$log"
-  elif [ "${CURL_RESULT}" -eq 404 ]; then
-    echo not found "$*" | tee -a "$log"
-  elif [ "${CURL_RESULT}" -eq 409 ]; then
-    echo conflict "$*" | tee -a "$log"
-  else
-    echo error "$*" | tee -a "$log"
-  fi
-}
-
 function makeDir() {
   BACKUP_DIR="$ROOT_DIR/backup/$DATE"
   RECOVER_DIR="$ROOT_DIR/recover/$DATE"
   UPDATE_DIR="$ROOT_DIR/update/$DATE"
   DELETE_DIR="$ROOT_DIR/delete/$DATE"
-  CREATE_DIR="$ROOT_DIR/delete/$DATE"
+  CREATE_DIR="$ROOT_DIR/create/$DATE"
   ACTIVITY="$(echo "${0##*/}" | cut -d'_' -f1)"
   CONTEXT=$(basename "$(pwd)")
   mkdir -p "$ACTIVITY/$DATE"
@@ -40,21 +24,40 @@ function makeDir() {
   header
 }
 
+function header() {
+  local log
+  local columns
+
+  log="$ACTIVITY/$DATE/${CONTEXT}_log.txt"
+  columns=$(tput cols)
+  echo --------------------------------------------------------------------------------------------------------- | tee -a "$log"
+  printf "%*s\n" $(((${#CONTEXT} + columns) / 3)) "START ${ACTIVITY^^} ${CONTEXT^^} - $DATE" | tee -a "$log"
+  echo --------------------------------------------------------------------------------------------------------- | tee -a "$log"
+}
+
+function status() {
+  local log
+
+  log="$ACTIVITY/$DATE/$CONTEXT"_log.txt
+
+  if [ "${CURL_RESULT}" -eq 200 ] || [ "${CURL_RESULT}" -eq 204 ] || [ "${CURL_RESULT}" -eq 201 ]; then
+    echo success "$*" | tee -a "$log"
+  elif [ "${CURL_RESULT}" -eq 404 ]; then
+    echo not found "$*" | tee -a "$log"
+  elif [ "${CURL_RESULT}" -eq 409 ]; then
+    echo conflict "$*" | tee -a "$log"
+  else
+    echo error "$*" | tee -a "$log"
+  fi
+}
+
 function copy() {
   local parent
   local parent_log
+  local file_type
 
   parent=$(dirname "$PWD")
   parent_log="$ROOT_DIR/$ACTIVITY/$DATE"/$(basename "$parent")_log.txt
-
-  if [[ "$ACTIVITY" == 'backup' ]]; then
-    cat "$FILENAME.txt" >"$RECOVER_DIR/$CONTEXT.txt"
-    cp "$FILENAME.txt" "$ROOT_DIR/recover/$CONTEXT.txt"
-  fi
-
-  if [[ "$ACTION" == 'update' ]]; then
-    cp "${FILENAME}_status.txt" "$ROOT_DIR/change/${CONTEXT}.txt"
-  fi
 
   if [[ -f "$parent_log" ]]; then
     cat "$FILENAME"_log.txt >>"$parent_log"
@@ -83,18 +86,6 @@ function compress() {
       rm -rf "${recover_dir:?}/$DATE"
     )
   fi
-}
-
-function header() {
-  local log
-  local columns
-
-  log="$ACTIVITY/$DATE/${CONTEXT}_log.txt"
-  columns=$(tput cols)
-  echo --------------------------------------------------------------------------------------------------------- | tee -a "$log"
-  printf "%*s\n" $(((${#CONTEXT} + columns) / 3)) "START ${ACTIVITY^^} ${CONTEXT^^} - $DATE" | tee -a "$log"
-  echo --------------------------------------------------------------------------------------------------------- | tee -a "$log"
-
 }
 
 function makeCurl() {
@@ -174,12 +165,12 @@ function makeBackupSub() {
 
     if [[ "$ACTION" == 'revision' ]]; then
       for revision in $(echo "$payload" | jq '.revision | .[]' | sed 's/\"//g'); do
-        revision_dir="$ROOT_DIR/revision/$CONTEXT/$object"
+        revision_dir="$ROOT_DIR/revision/$CONTEXT/$object/$revision"
         mkdir -p "$revision_dir"
         (
           cd "$revision_dir" || exit
           makeCurlObject "/revisions/${revision}?format=bundle"
-          cp "$TEMP" "revision_${revision}.zip"
+          7z x "$TEMP" >/dev/null
         )
         status "$CURL_RESULT revision done see revision/$object/revision_${revision}.zip"
       done
@@ -188,11 +179,20 @@ function makeBackupSub() {
     payload=$(echo "$payload" | jq -c '. |  del(.createdAt,.createdBy,.lastModifiedAt,.lastModifiedBy,.organization,.apps,.metaData,.revision)')
     echo "$payload" >>"$FILENAME.txt"
 
-    if [[ "$ACTION" == 'update' ]]; then
-      paste -d "|" <(echo "$payload" | jq '. | (.name+"|"+.status)' | sed 's/\"//g') <(echo "$payload" | jq -c '. |  del(.name,.status)') >>"${FILENAME}_status.txt"
+    if [[ "$ACTION" == 'status' ]]; then
+      paste -d "|" <(echo "$payload" | jq '. | .name' | sed 's/\"//g') <(echo "$payload" | jq '. | .status' | sed 's/\"//g') >>"${FILENAME}_status.txt"
     fi
 
+    paste -d "|" <(echo "$payload" | jq '. | .name' | sed 's/\"//g') <(echo "$payload" | jq -c '. |  del(.name,.status)') >>"${FILENAME}_change.txt"
+
   done
+
+  cat "$FILENAME.txt" >"$RECOVER_DIR/$CONTEXT.txt"
+  mv "$FILENAME.txt" "$ROOT_DIR/recover/$CONTEXT.txt"
+  if [[ "$ACTION" == 'status' ]]; then
+    mv "${FILENAME}_status.txt" "$ROOT_DIR/change/${CONTEXT}_status.txt"
+  fi
+  mv "${FILENAME}_change.txt" "$ROOT_DIR/change/${CONTEXT}_change.txt"
 }
 
 function create() {
@@ -226,36 +226,51 @@ function create() {
 function update() {
   local object
   local objects
-  local object_file
+  local change_file
+  local status_file
+  local sub_uri
   local log
 
+  sub_uri="$1"
+  ACTION="$2"
   FILENAME="$ACTIVITY/$DATE/$CONTEXT"
   VERB='PUT'
-  object_file="$ROOT_DIR/change/${CONTEXT}.txt"
+  change_file="$ROOT_DIR/change/${CONTEXT}_change.txt"
+  status_file="$ROOT_DIR/change/${CONTEXT}_status.txt"
   log="$ACTIVITY/$DATE/$CONTEXT"_log.txt
 
-  if [[ ! -f "$object_file" ]]; then
+  if [[ "$UPDATE" != 'ON' ]]; then
+    echo 'permission to update is disable' | tee -a "$log"
+    return
+  fi
+
+  if [[ ! -f "$change_file" ]] && [[ ! -f "$status_file" ]]; then
     echo 'update file not found' | tee -a "$log"
     return
   fi
-  cp "$object_file" "$ACTIVITY/$DATE/change.txt"
+
+  cp "$change_file" "$ACTIVITY/$DATE/change.txt"
+
+  if [[ -f "$status_file" ]]; then
+    cp "$status_file" "$ACTIVITY/$DATE/status.txt"
+    while IFS= read -r objects; do
+      IFS='|' read -ra object <<<"$objects"
+      URI="$sub_uri/${object[0]}?action=${object[1]}"
+      CONTENT_TYPE='Content-Type: application/octet-stream'
+      makeCurl
+      status "$CURL_RESULT updated ${object[0]} to status ${object[1]}"
+    done <"$status_file"
+  fi
 
   while IFS= read -r objects; do
     IFS='|' read -ra object <<<"$objects"
-
-    URI="$CONTEXT/${object[0]}?action=${object[1]}"
-    CONTENT_TYPE='Content-Type: application/octet-stream'
+    URI="$sub_uri/${object[0]}"
+    CONTENT_TYPE='Content-Type: application/json'
+    DATA="${object[1]}"
     makeCurl
     status "$CURL_RESULT updated ${object[0]} to ${object[1]}"
-
-    URI="$CONTEXT/${object[0]}"
-    CONTENT_TYPE='Content-Type: application/json'
-    DATA="${object[2]}"
-    makeCurl
-    status "$CURL_RESULT updated ${object[0]} to ${object[2]}"
-
     cat <"$TEMP" | jq >"$ACTIVITY/$DATE/${object[0]}.json"
-  done <"$object_file"
+  done <"$change_file"
 }
 
 function delete() {
@@ -301,19 +316,19 @@ function delete() {
 function mass() {
   activity 'companies'
   activity 'apiproducts'
-  #    activity 'keyvaluemaps'
-  #    activity 'targetservers'
-  #    activity 'apis'
-  #    activity 'userroles'
-  #    activity 'sharedflows'
-  #    activity 'caches'
-  #    activity 'users'
-  #    activity 'developers'
-  #    activity 'virtualhosts'
-  #    activity 'keystores'
-  #    activity 'references'
-  #    activity 'reports'
-  #    activity 'environments'
+  #      activity 'keyvaluemaps'
+  #      activity 'targetservers'
+  #      activity 'apis'
+  #      activity 'userroles'
+  #      activity 'sharedflows'
+  #      activity 'caches'
+  #      activity 'users'
+  #      activity 'developers'
+  #      activity 'virtualhosts'
+  #      activity 'keystores'
+  #      activity 'references'
+  #      activity 'reports'
+  #      activity 'environments'
 }
 
 function activity() {

@@ -15,7 +15,8 @@ export ROOT_DIR=/c/users/user/apigee
 export APIGEE=https://api.enterprise.apigee.com
 export URL="$APIGEE/v1/organizations/$ORG"
 export COMPANY="Test"
-export DELETE="ON"
+export DELETE="OFF"
+export UPDATE="OFF"
 export AUTH="$USERNAME:$PASSWORD"
 if [[ -z $DATE ]]; then
     DATE=$(date +"%Y-%m-%d_%H-%M-%S")
