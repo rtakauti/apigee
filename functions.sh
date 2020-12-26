@@ -78,6 +78,14 @@ function compress() {
     rm -rf "$DATE"
   )
 
+  if [[ "$CONTEXT" != 'apigee' ]]; then
+    (
+      cd "$ROOT_DIR/$ACTIVITY" || exit
+      7z a -r "APIGEE_$DATE".zip "$DATE" >/dev/null
+      rm -rf "$DATE"
+    )
+  fi
+
   if [[ "$ACTIVITY" == 'backup' ]]; then
     (
       cd "$recover_dir" || exit
@@ -332,11 +340,11 @@ function mass() {
   activity 'apiproducts'
   activity 'developers'
   activity 'apis'
+  activity 'sharedflows'
   #      activity 'virtualhosts'
   #      activity 'keyvaluemaps'
   #      activity 'targetservers'
   #      activity 'userroles'
-  #      activity 'sharedflows'
   #      activity 'caches'
   #      activity 'users'
   #      activity 'keystores'
@@ -372,24 +380,18 @@ function execute() {
 
 function clean() {
   local context
-  context="$1"
+  local activity
+  declare -a activities=("backup" "create" "update" "delete")
 
-  (
-    cd "$context/backup" || exit
-    rm -rf ./*
-  )
-  (
-    cd "$context/create" || exit
-    rm -rf ./*
-  )
-  (
-    cd "$context/update" || exit
-    rm -rf ./*
-  )
-  (
-    cd "$context/delete" || exit
-    rm -rf ./*
-  )
+  context="$1"
+  for activity in "${activities[@]}"; do
+    if [[ -d "$context/$activity" ]]; then
+      (
+        cd "$context/$activity" || exit
+        rm -rf ./*
+      )
+    fi
+  done
 }
 
 function linux() {
