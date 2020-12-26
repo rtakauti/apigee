@@ -4,7 +4,8 @@ source ../env_var.sh
 source ../functions.sh
 
 makeDir
+makeBackupList "$CONTEXT?expand=true" 'expand'
 makeBackupList "$CONTEXT" 'list'
-makeBackupSub
+makeBackupSub 'status'
 copy
 compress

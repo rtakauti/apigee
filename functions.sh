@@ -64,18 +64,18 @@ function copy() {
 }
 
 function compress() {
-  local activity_dir
+  local context_dir
   local recover_dir
 
-  activity_dir="$ROOT_DIR/$ACTIVITY/$DATE"
+  context_dir="$ROOT_DIR/$ACTIVITY/$DATE"
   recover_dir="$ROOT_DIR/recover"
-  CONTEXT=$(basename "$(pwd)")
 
+  CONTEXT=$(basename "$(pwd)")
   (
     cd "$ACTIVITY" || exit
     7z a -r "${CONTEXT^^}_$DATE".zip "$DATE" >/dev/null
-    cp "${CONTEXT^^}"_"$DATE".zip "$activity_dir"
-    rm -fr "$DATE"
+    cp "${CONTEXT^^}"_"$DATE".zip "$context_dir"
+    rm -rf "$DATE"
   )
 
   if [[ "$ACTIVITY" == 'backup' ]]; then
@@ -85,6 +85,7 @@ function compress() {
       rm -rf "${recover_dir:?}/$DATE"
     )
   fi
+
 }
 
 function makeCurl() {
@@ -146,8 +147,14 @@ function makeBackupSub() {
   local object_uri
   local payload
   local revision_dir
+  local name
 
   ACTION=$1
+  name='name'
+
+  if [[ "$CONTEXT" == 'developers' ]]; then
+    name='email'
+  fi
 
   for object in $LIST; do
     sub_file="$ACTIVITY/$DATE/$object.json"
@@ -165,7 +172,7 @@ function makeBackupSub() {
 
     if [[ "$ACTION" == 'revision' ]]; then
       for revision in $(echo "$payload" | jq '.revision | .[]' | sed 's/\"//g'); do
-        revision_dir="$ROOT_DIR/revision/$CONTEXT/$object/$revision"
+        revision_dir="$ROOT_DIR/revisions/$CONTEXT/$object/$revision"
         mkdir -p "$revision_dir"
         (
           cd "$revision_dir" || exit
@@ -180,22 +187,24 @@ function makeBackupSub() {
     echo "$payload" >>"$FILENAME.txt"
 
     if [[ "$ACTION" == 'status' ]]; then
-      paste -d "|" <(echo "$payload" | jq '. | .name' | sed 's/\"//g') <(echo "$payload" | jq '. | .status' | sed 's/\"//g') >>"${FILENAME}_status.txt"
+      paste -d "|" <(echo "$payload" | jq --arg name "$name" '.[$name]' | sed 's/\"//g') <(echo "$payload" | jq '.status' | sed 's/\"//g') >>"${FILENAME}_status.txt"
     fi
 
-    paste -d "|" <(echo "$payload" | jq '. | .name' | sed 's/\"//g') <(echo "$payload" | jq -c '. |  del(.name,.status)') >>"${FILENAME}_change.txt"
+    paste -d "|" <(echo "$payload" | jq --arg name "$name" '.[$name]' | sed 's/\"//g') <(echo "$payload" | jq -c 'del(.name,.status)') >>"${FILENAME}_change.txt"
 
   done
 
   cat "$FILENAME.txt" >"$RECOVER_DIR/$CONTEXT.txt"
-  mv "$FILENAME.txt" "$ROOT_DIR/recover/$CONTEXT.txt"
+  cp "$FILENAME.txt" "$ROOT_DIR/recover/$CONTEXT.txt"
 
   if [[ "$ACTION" == 'status' ]]; then
     mv "${FILENAME}_status.txt" "$ROOT_DIR/change/${CONTEXT}_status.txt"
   fi
 
-  if [[ "$CONTEXT" != 'apis' ]]; then
+  if [[ "$CONTEXT" != 'apis' ]] && [[ "$CONTEXT" != 'sharedflows' ]]; then
     mv "${FILENAME}_change.txt" "$ROOT_DIR/change/${CONTEXT}_change.txt"
+  else
+    rm "${FILENAME}_change.txt"
   fi
 
 }
@@ -254,10 +263,10 @@ function update() {
     return
   fi
 
-  cp "$change_file" "$ACTIVITY/$DATE/change.txt"
+  cp "$change_file" "$ACTIVITY/$DATE"
 
   if [[ -f "$status_file" ]]; then
-    cp "$status_file" "$ACTIVITY/$DATE/status.txt"
+    cp "$status_file" "$ACTIVITY/$DATE"
     while IFS= read -r objects; do
       IFS='|' read -ra object <<<"$objects"
       URI="$sub_uri/${object[0]}?action=${object[1]}"
@@ -321,15 +330,15 @@ function delete() {
 function mass() {
   activity 'companies'
   activity 'apiproducts'
+  activity 'developers'
   activity 'apis'
+  #      activity 'virtualhosts'
   #      activity 'keyvaluemaps'
   #      activity 'targetservers'
   #      activity 'userroles'
   #      activity 'sharedflows'
   #      activity 'caches'
   #      activity 'users'
-  #      activity 'developers'
-  #      activity 'virtualhosts'
   #      activity 'keystores'
   #      activity 'references'
   #      activity 'reports'
@@ -355,7 +364,9 @@ function execute() {
   context="$1"
   (
     cd "$context" || exit
-    bash "${ACTIVITY}_${context}".sh
+    if [[ -f "${ACTIVITY}_${context}".sh ]]; then
+      bash "${ACTIVITY}_${context}".sh
+    fi
   )
 }
 

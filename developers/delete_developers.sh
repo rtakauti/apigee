@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-source ../env_var.sh
 source ../functions.sh
+source ../env_var.sh
 
 makeDir
-update "$CONTEXT"
+delete
 copy
 compress
