@@ -4,4 +4,6 @@ source ../env_var.sh
 source ../functions.sh
 
 makeDir
-recover
+create "$CONTEXT"
+copy
+compress

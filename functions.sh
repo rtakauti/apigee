@@ -54,7 +54,6 @@ function status() {
 function copy() {
   local parent
   local parent_log
-  local file_type
 
   parent=$(dirname "$PWD")
   parent_log="$ROOT_DIR/$ACTIVITY/$DATE"/$(basename "$parent")_log.txt
@@ -143,6 +142,7 @@ function makeBackupList() {
 
 function makeBackupSub() {
   local sub_file
+  local object
   local object_uri
   local payload
   local revision_dir
@@ -189,10 +189,15 @@ function makeBackupSub() {
 
   cat "$FILENAME.txt" >"$RECOVER_DIR/$CONTEXT.txt"
   mv "$FILENAME.txt" "$ROOT_DIR/recover/$CONTEXT.txt"
+
   if [[ "$ACTION" == 'status' ]]; then
     mv "${FILENAME}_status.txt" "$ROOT_DIR/change/${CONTEXT}_status.txt"
   fi
-  mv "${FILENAME}_change.txt" "$ROOT_DIR/change/${CONTEXT}_change.txt"
+
+  if [[ "$CONTEXT" != 'apis' ]]; then
+    mv "${FILENAME}_change.txt" "$ROOT_DIR/change/${CONTEXT}_change.txt"
+  fi
+
 }
 
 function create() {
@@ -212,7 +217,7 @@ function create() {
     return
   fi
 
-  cp "$object_file" "$ACTIVITY/$DATE/recover.txt"
+  cp "$object_file" "$ACTIVITY/$DATE/$CONTEXT.txt"
   while IFS= read -r object; do
     CONTENT_TYPE='Content-Type: application/json'
     DATA="$object"
@@ -294,7 +299,7 @@ function delete() {
     echo 'remove file not found' | tee -a "$log"
     return
   fi
-  cp "$object_file" "$ACTIVITY/$DATE/remove.txt"
+  cp "$object_file" "$ACTIVITY/$DATE/$CONTEXT.txt"
 
   while IFS= read -r objects; do
     IFS='|' read -ra object <<<"$objects"
@@ -316,9 +321,9 @@ function delete() {
 function mass() {
   activity 'companies'
   activity 'apiproducts'
+  activity 'apis'
   #      activity 'keyvaluemaps'
   #      activity 'targetservers'
-  #      activity 'apis'
   #      activity 'userroles'
   #      activity 'sharedflows'
   #      activity 'caches'
