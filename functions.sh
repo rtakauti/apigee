@@ -160,7 +160,7 @@ function makeBackupSub() {
   ACTION=$1
   name='name'
 
-  if [[ "$CONTEXT" == 'developers' ]]; then
+  if [[ "$CONTEXT" == 'developers' ]] || [[ "$CONTEXT" == 'users' ]]; then
     name='email'
   fi
 
@@ -341,12 +341,12 @@ function mass() {
   activity 'developers'
   activity 'apis'
   activity 'sharedflows'
+#  activity 'users'
   #      activity 'virtualhosts'
   #      activity 'keyvaluemaps'
   #      activity 'targetservers'
   #      activity 'userroles'
   #      activity 'caches'
-  #      activity 'users'
   #      activity 'keystores'
   #      activity 'references'
   #      activity 'reports'
