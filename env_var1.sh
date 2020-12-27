@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 alias jq=/c/jq-win64.exe
-
 #export makes the variable available to sub-processes.
 export jq='/c/jq-win64.exe'
 export zip='/c/7z.exe'

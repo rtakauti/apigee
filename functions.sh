@@ -42,6 +42,12 @@ function status() {
 
   if [ "${CURL_RESULT}" -eq 200 ] || [ "${CURL_RESULT}" -eq 204 ] || [ "${CURL_RESULT}" -eq 201 ]; then
     echo success "$*" | tee -a "$log"
+  elif [ "${CURL_RESULT}" -eq 400 ]; then
+    echo bad request "$*" | tee -a "$log"
+  elif [ "${CURL_RESULT}" -eq 401 ]; then
+    echo unauthorized "$*" | tee -a "$log"
+  elif [ "${CURL_RESULT}" -eq 403 ]; then
+    echo forbidden "$*" | tee -a "$log"
   elif [ "${CURL_RESULT}" -eq 404 ]; then
     echo not found "$*" | tee -a "$log"
   elif [ "${CURL_RESULT}" -eq 409 ]; then
@@ -142,6 +148,9 @@ function makeBackupList() {
   if [[ "$type" == 'list' ]]; then
     LIST=$(echo "$payload" | jq '.[]' | sed 's/\"//g')
     echo "$LIST" | sed 's/$/|not_delete/' >"$ROOT_DIR/remove/$CONTEXT.txt"
+    if [[ "$CONTEXT" == 'environments' ]]; then
+      printf "export ENVS=(%s)\n" "$(echo "$payload" | jq -c '.[]' | sed ':a;N;$!ba;s/\n/ /g')" >"$ROOT_DIR/environments.sh"
+    fi
   fi
 
   if [[ "$type" == 'jq' ]]; then
@@ -336,13 +345,14 @@ function delete() {
 }
 
 function mass() {
-  activity 'companies'
-  activity 'apiproducts'
-  activity 'developers'
-  activity 'apis'
-  activity 'sharedflows'
-#  activity 'users'
-  #      activity 'virtualhosts'
+  activity 'environments'
+  #  activity 'companies'
+  #  activity 'apiproducts'
+  #  activity 'developers'
+  #  activity 'apis'
+  #  activity 'sharedflows'
+  #  activity 'users'
+  #        activity 'virtualhosts'
   #      activity 'keyvaluemaps'
   #      activity 'targetservers'
   #      activity 'userroles'
@@ -350,7 +360,6 @@ function mass() {
   #      activity 'keystores'
   #      activity 'references'
   #      activity 'reports'
-  #      activity 'environments'
 }
 
 function activity() {
