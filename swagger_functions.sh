@@ -38,7 +38,6 @@ function createMainXML() {
   mkdir -p "$BUNDLE_DIR"
   createProxyXML "$basepath"
   createTargetXML
-  createNotFoundPolicy
   cat <<EOF >"$BUNDLE_DIR/${title}.xml"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <APIProxy name="$title">
@@ -82,10 +81,12 @@ function createProxyXML() {
     <Request/>
     <Response/>
   </PostFlow>
+  <Flows>
   $(createFlowXML)
+  $(createPolicy 'RF-NotFound' 'Request' 'Flow')
+  </Flows>
   <HTTPProxyConnection>
     <BasePath>$basepath</BasePath>
-    <VirtualHost>secure</VirtualHost>
     <VirtualHost>default</VirtualHost>
   </HTTPProxyConnection>
   <RouteRule name="default">
@@ -99,15 +100,12 @@ function createFlowXML() {
   local verb
   local endpoint
 
-  printf "<Flows>\n"
   for endpoint in $(jq '.paths | keys[]' "$file"); do
     for verb in $(jq --argjson endpoint "$endpoint" '.paths[$endpoint] | keys[]' "$file"); do
-      description=$(jq --argjson endpoint "$endpoint" --argjson verb "$verb" '.paths[$endpoint][$verb].description' "$file" | sed 's/\"//g')
+      description=$(jq --argjson endpoint "$endpoint" --argjson verb "$verb" '.paths[$endpoint][$verb].description' "$file" | sed 's/null//g' | sed 's/\"//g')
       printf "\t<Flow name=%s>\n\t\t<Description>%s</Description>\n\t\t<Request/>\n\t\t<Response/>\n\t\t<Condition>(proxy.pathsuffix MatchesPath %s) and (request.verb = %s)</Condition>\n\t</Flow>\n" "$(echo "$endpoint" | sed ':a;N;$!ba;s/\n//g')" "$description" "$(echo "$endpoint" | sed 's/{[^}]*}/\*/g')" "$(echo "${verb^^}" | sed ':a;N;$!ba;s/\n//g')"
     done
   done
-  printf "\t<Flow name=\"NotFound\">\n\t\t<Request>\n\t\t\t<Step>\n\t\t\t\t<Name>RF-NotFound</Name>\n\t\t\t</Step>\n\t\t</Request>\n\t</Flow>\n"
-  printf "\t</Flows>\n"
 }
 
 function createTargetXML() {
@@ -136,24 +134,21 @@ function createTargetXML() {
 EOF
 }
 
-function createNotFoundPolicy() {
+function createPolicy() {
   local policy_dir
+  local policy
+  local type
+  local position
 
+  policy="$1"
+  type="$2"
+  position="$3"
   policy_dir="$BUNDLE_DIR/policies"
   mkdir -p "$policy_dir"
-  cat <<EOF >"$policy_dir/RF-NotFound.xml"
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<RaiseFault async="false" continueOnError="false" enabled="true" name="RF-NotFound">
-    <DisplayName>RF-NotFound</DisplayName>
-    <Properties/>
-    <FaultResponse>
-        <Set>
-            <Payload contentType="text/plain">{proxy.pathsuffix} resource not found.</Payload>
-            <StatusCode>404</StatusCode>
-            <ReasonPhrase>Not found</ReasonPhrase>
-        </Set>
-    </FaultResponse>
-    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
-</RaiseFault>
-EOF
+  cp "$ROOT_DIR/policies_dir/$policy.xml" "$policy_dir"
+  if [[ "$position" == 'Flow' ]]; then
+    printf "\t<Flow name=\"%s\">\n\t\t<%s>\n\t\t\t<Step>\n\t\t\t\t<Name>%s</Name>\n\t\t\t</Step>\n\t\t</%s>\n\t</Flow>\n" "$policy" "$type" "$policy" "$type"
+  else
+    printf "\t<Step>\n\t\t\t<Name>%s</Name>\n\t\t</Step>\n" "$policy"
+  fi
 }
