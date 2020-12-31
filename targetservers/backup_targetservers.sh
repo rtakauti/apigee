@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
-source ../env_var.sh
 source ../functions.sh
+source ../env_var.sh
+source ../environments.sh
 
-makeDir
-makeBackupList "environments/$ENV/$CONTEXT" 'list'
-makeBackupSub
-copy
+for ENV in ${ENVS[*]}; do
+  makeDir
+  makeBackupList "environments/$ENV/$CONTEXT" 'list'
+  makeBackupSub
+  copy
+done
 compress

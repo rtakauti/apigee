@@ -6,7 +6,7 @@ source ../environments.sh
 
 for ENV in ${ENVS[*]}; do
   makeDir
-  create "environments/$ENV/$CONTEXT"
+  delete "environments/$ENV/$CONTEXT"
   copy
 done
 compress

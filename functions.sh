@@ -3,12 +3,25 @@
 function makeDir() {
   BACKUP_DIR="$ROOT_DIR/backup/$DATE"
   RECOVER_DIR="$ROOT_DIR/recover/$DATE"
+  RECOVER="$ROOT_DIR/recover"
   UPDATE_DIR="$ROOT_DIR/update/$DATE"
   DELETE_DIR="$ROOT_DIR/delete/$DATE"
+  REMOVE="$ROOT_DIR/remove"
   CREATE_DIR="$ROOT_DIR/create/$DATE"
   ACTIVITY="$(echo "${0##*/}" | cut -d'_' -f1)"
   CONTEXT=$(basename "$(pwd)")
-  mkdir -p "$ACTIVITY/$DATE"
+  ACTIVITY_DIR="$ACTIVITY/$DATE"
+  SUFFIX="$CONTEXT"
+
+  if [[ -n $ENV ]]; then
+    RECOVER_DIR="$ROOT_DIR/recover/$DATE/$ENV"
+    ACTIVITY_DIR="$ACTIVITY/$DATE/$ENV"
+    SUFFIX="${CONTEXT}_$ENV"
+  fi
+
+  mkdir -p "$ACTIVITY_DIR"
+  FILENAME="$ACTIVITY_DIR/$CONTEXT"
+  LOG="${FILENAME}_log.txt"
 
   if [[ "$ACTIVITY" == 'backup' ]]; then
     mkdir -p "$RECOVER_DIR"
@@ -25,35 +38,29 @@ function makeDir() {
 }
 
 function header() {
-  local log
   local columns
 
-  log="$ACTIVITY/$DATE/${CONTEXT}_log.txt"
   columns=$(tput cols)
-  echo --------------------------------------------------------------------------------------------------------- | tee -a "$log"
-  printf "%*s\n" $(((${#CONTEXT} + columns) / 3)) "START ${ACTIVITY^^} ${CONTEXT^^} - $DATE" | tee -a "$log"
-  echo --------------------------------------------------------------------------------------------------------- | tee -a "$log"
+  echo --------------------------------------------------------------------------------------------------------- | tee -a "$LOG"
+  printf "%*s\n" $(((${#CONTEXT} + columns) / 3)) "START ${ACTIVITY^^} ${ENV^^} ${CONTEXT^^} - $DATE" | tee -a "$LOG"
+  echo --------------------------------------------------------------------------------------------------------- | tee -a "$LOG"
 }
 
 function status() {
-  local log
-
-  log="$ACTIVITY/$DATE/$CONTEXT"_log.txt
-
   if [ "${CURL_RESULT}" -eq 200 ] || [ "${CURL_RESULT}" -eq 204 ] || [ "${CURL_RESULT}" -eq 201 ]; then
-    echo success "$*" | tee -a "$log"
+    echo success "$*" | tee -a "$LOG"
   elif [ "${CURL_RESULT}" -eq 400 ]; then
-    echo bad request "$*" | tee -a "$log"
+    echo bad request "$*" | tee -a "$LOG"
   elif [ "${CURL_RESULT}" -eq 401 ]; then
-    echo unauthorized "$*" | tee -a "$log"
+    echo unauthorized "$*" | tee -a "$LOG"
   elif [ "${CURL_RESULT}" -eq 403 ]; then
-    echo forbidden "$*" | tee -a "$log"
+    echo forbidden "$*" | tee -a "$LOG"
   elif [ "${CURL_RESULT}" -eq 404 ]; then
-    echo not found "$*" | tee -a "$log"
+    echo not found "$*" | tee -a "$LOG"
   elif [ "${CURL_RESULT}" -eq 409 ]; then
-    echo conflict "$*" | tee -a "$log"
+    echo conflict "$*" | tee -a "$LOG"
   else
-    echo error "$*" | tee -a "$log"
+    echo error "$*" | tee -a "$LOG"
   fi
 }
 
@@ -75,22 +82,14 @@ function compress() {
 
   context_dir="$ROOT_DIR/$ACTIVITY/$DATE"
   recover_dir="$ROOT_DIR/recover"
-
   CONTEXT=$(basename "$(pwd)")
+
   (
     cd "$ACTIVITY" || exit
     7z a -r "${CONTEXT^^}_$DATE".zip "$DATE" >/dev/null
     cp "${CONTEXT^^}"_"$DATE".zip "$context_dir"
     rm -rf "$DATE"
   )
-
-  if [[ "$CONTEXT" != 'apigee' ]]; then
-    (
-      cd "$ROOT_DIR/$ACTIVITY" || exit
-      7z a -r "APIGEE_$DATE".zip "$DATE" >/dev/null
-      rm -rf "$DATE"
-    )
-  fi
 
   if [[ "$ACTIVITY" == 'backup' ]]; then
     (
@@ -133,7 +132,6 @@ function makeBackupList() {
   type="$2"
   jq_query="$3"
   VERB='GET'
-  FILENAME="$ACTIVITY/$DATE/$CONTEXT"
   file="${FILENAME}_${type}.json"
 
   if [[ -z "$type" ]]; then
@@ -147,7 +145,7 @@ function makeBackupList() {
 
   if [[ "$type" == 'list' ]]; then
     LIST=$(echo "$payload" | jq '.[]' | sed 's/\"//g')
-    echo "$LIST" | sed 's/$/|not_delete/' >"$ROOT_DIR/remove/$CONTEXT.txt"
+    echo "$LIST" | sed 's/$/|not_delete/' >"$REMOVE/$SUFFIX.txt"
     if [[ "$CONTEXT" == 'environments' ]]; then
       printf "export ENVS=(%s)\n" "$(echo "$payload" | jq -c '.[]' | sed ':a;N;$!ba;s/\n/ /g')" >"$ROOT_DIR/environments.sh"
     fi
@@ -174,11 +172,11 @@ function makeBackupSub() {
   fi
 
   for object in $LIST; do
-    sub_file="$ACTIVITY/$DATE/$object.json"
+    sub_file="$ACTIVITY_DIR/$object.json"
 
     if [[ "$type" == 'jq' ]]; then
       IFS='|' read -ra object <<<"$object"
-      sub_file="$ACTIVITY/$DATE/${object[1]}.json"
+      sub_file="$ACTIVITY_DIR/${object[1]}.json"
     fi
 
     object_uri="${object// /%20}"
@@ -212,45 +210,41 @@ function makeBackupSub() {
   done
 
   cat "$FILENAME.txt" >"$RECOVER_DIR/$CONTEXT.txt"
-  cp "$FILENAME.txt" "$ROOT_DIR/recover/$CONTEXT.txt"
+  cp "$FILENAME.txt" "$RECOVER/$SUFFIX.txt"
 
   if [[ "$ACTION" == 'status' ]]; then
-    mv "${FILENAME}_status.txt" "$ROOT_DIR/change/${CONTEXT}_status.txt"
+    mv "${FILENAME}_status.txt" "$ROOT_DIR/change/${SUFFIX}_status.txt"
   fi
 
   if [[ "$CONTEXT" != 'apis' ]] && [[ "$CONTEXT" != 'sharedflows' ]]; then
-    mv "${FILENAME}_change.txt" "$ROOT_DIR/change/${CONTEXT}_change.txt"
+    mv "${FILENAME}_change.txt" "$ROOT_DIR/change/${SUFFIX}_change.txt"
   else
     rm "${FILENAME}_change.txt"
   fi
-
 }
 
 function create() {
   local object
   local object_file
   local sub_file
-  local log
 
   URI="$1"
-  FILENAME="$ACTIVITY/$DATE/$CONTEXT"
   VERB='POST'
-  log="$ACTIVITY/$DATE/$CONTEXT"_log.txt
-  object_file="$ROOT_DIR/recover/$CONTEXT.txt"
+  object_file="$RECOVER/$SUFFIX.txt"
 
   if [[ ! -f "$object_file" ]]; then
-    echo 'recover file not found' | tee -a "$log"
+    echo 'recover file not found' | tee -a "$LOG"
     return
   fi
 
-  cp "$object_file" "$ACTIVITY/$DATE/$CONTEXT.txt"
+  cp "$object_file" "$ACTIVITY_DIR/$SUFFIX.txt"
   while IFS= read -r object; do
     CONTENT_TYPE='Content-Type: application/json'
     DATA="$object"
     makeCurl
     status "$CURL_RESULT recover done from $object"
     sub_file=$(echo "$object" | jq '.name' | sed 's/\"//g')
-    cat <"$TEMP" | jq >"$ACTIVITY/$DATE/$sub_file.json"
+    cat <"$TEMP" | jq >"$ACTIVITY_DIR/$sub_file.json"
   done <"$object_file"
 }
 
@@ -260,30 +254,27 @@ function update() {
   local change_file
   local status_file
   local sub_uri
-  local log
 
   sub_uri="$1"
   ACTION="$2"
-  FILENAME="$ACTIVITY/$DATE/$CONTEXT"
   VERB='PUT'
-  change_file="$ROOT_DIR/change/${CONTEXT}_change.txt"
-  status_file="$ROOT_DIR/change/${CONTEXT}_status.txt"
-  log="$ACTIVITY/$DATE/$CONTEXT"_log.txt
+  change_file="$ROOT_DIR/change/${SUFFIX}_change.txt"
+  status_file="$ROOT_DIR/change/${SUFFIX}_status.txt"
 
   if [[ "$UPDATE" != 'ON' ]]; then
-    echo 'permission to update is disable' | tee -a "$log"
+    echo 'permission to update is disable' | tee -a "$LOG"
     return
   fi
 
   if [[ ! -f "$change_file" ]] && [[ ! -f "$status_file" ]]; then
-    echo 'update file not found' | tee -a "$log"
+    echo 'update file not found' | tee -a "$LOG"
     return
   fi
 
-  cp "$change_file" "$ACTIVITY/$DATE"
+  cp "$change_file" "$ACTIVITY_DIR"
 
   if [[ -f "$status_file" ]]; then
-    cp "$status_file" "$ACTIVITY/$DATE"
+    cp "$status_file" "$ACTIVITY_DIR"
     while IFS= read -r objects; do
       IFS='|' read -ra object <<<"$objects"
       URI="$sub_uri/${object[0]}?action=${object[1]}"
@@ -300,7 +291,7 @@ function update() {
     DATA="${object[1]}"
     makeCurl
     status "$CURL_RESULT updated ${object[0]} to ${object[1]}"
-    cat <"$TEMP" | jq >"$ACTIVITY/$DATE/${object[0]}.json"
+    cat <"$TEMP" | jq >"$ACTIVITY_DIR/${object[0]}.json"
   done <"$change_file"
 }
 
@@ -308,53 +299,52 @@ function delete() {
   local object
   local objects
   local object_file
-  local log
   local flag
+  local sub_uri
 
-  FILENAME="$ACTIVITY/$DATE/$CONTEXT"
   VERB='DELETE'
-  object_file="$ROOT_DIR/remove/$CONTEXT.txt"
-  log="$ACTIVITY/$DATE/${CONTEXT}_log.txt"
+  object_file="$REMOVE/$SUFFIX.txt"
+  sub_uri="$1"
 
   if [[ "$DELETE" != 'ON' ]]; then
-    echo 'permission to delete is disable' | tee -a "$log"
+    echo 'permission to delete is disable' | tee -a "$LOG"
     return
   fi
 
   if [[ ! -f "$object_file" ]]; then
-    echo 'remove file not found' | tee -a "$log"
+    echo 'remove file not found' | tee -a "$LOG"
     return
   fi
-  cp "$object_file" "$ACTIVITY/$DATE/$CONTEXT.txt"
+  cp "$object_file" "$ACTIVITY_DIR/$SUFFIX.txt"
 
   while IFS= read -r objects; do
     IFS='|' read -ra object <<<"$objects"
 
     if [[ "${object[1]}" == 'delete' ]]; then
       flag=1
-      URI="$CONTEXT/${object[0]}"
+      URI="$sub_uri/${object[0]}"
       makeCurl
       status "$CURL_RESULT remove ${object[0]}"
-      cat <"$TEMP" | jq >"$ACTIVITY/$DATE/${object[0]}.json"
+      cat <"$TEMP" | jq >"$ACTIVITY_DIR/${object[0]}.json"
     fi
   done <"$object_file"
 
   if [[ -z "$flag" ]]; then
-    echo 'nothing was deleted' | tee -a "$log"
+    echo 'nothing was deleted' | tee -a "$LOG"
   fi
 }
 
 function mass() {
   activity 'environments'
-  #  activity 'companies'
+  activity 'companies'
+  activity 'targetservers'
   #  activity 'apiproducts'
-  #  activity 'developers'
+  #    activity 'developers'
   #  activity 'apis'
   #  activity 'sharedflows'
   #  activity 'users'
   #        activity 'virtualhosts'
   #      activity 'keyvaluemaps'
-  #      activity 'targetservers'
   #      activity 'userroles'
   #      activity 'caches'
   #      activity 'keystores'
