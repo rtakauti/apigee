@@ -6,7 +6,7 @@ source ../environments.sh
 
 for ENV in ${ENVS[*]}; do
   makeDir
-  makeBackupList "environments/$ENV/$CONTEXT" 'list'
+  makeBackupList "organizations/$ORG/environments/$ENV/$CONTEXT" 'list'
   makeBackupSub
   copy
 done

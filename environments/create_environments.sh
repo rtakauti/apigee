@@ -4,6 +4,6 @@ source ../env_var.sh
 source ../functions.sh
 
 makeDir
-create "$CONTEXT"
+create "organizations/$ORG/$CONTEXT"
 copy
 compress

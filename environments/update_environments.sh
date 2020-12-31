@@ -4,6 +4,6 @@ source ../env_var.sh
 source ../functions.sh
 
 makeDir
-update "$CONTEXT" 'status'
+update "organizations/$ORG/$CONTEXT"
 copy
 compress

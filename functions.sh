@@ -107,7 +107,7 @@ function makeCurl() {
   specify="$1"
   CURL_RESULT=$(
     curl --location --request "$VERB" \
-      --insecure "$APIGEE/v1/organizations/$ORG/$URI${specify}" \
+      --insecure "$APIGEE/v1/$URI${specify}" \
       --output "$TEMP" \
       --user "$USERNAME:$PASSWORD" \
       --silent \
@@ -163,6 +163,11 @@ function makeBackupSub() {
   local payload
   local revision_dir
   local name
+
+  if [[ -z "$LIST" ]]; then
+    echo 'no items found' | tee -a "$LOG"
+    return
+  fi
 
   ACTION=$1
   name='name'
@@ -256,7 +261,6 @@ function update() {
   local sub_uri
 
   sub_uri="$1"
-  ACTION="$2"
   VERB='PUT'
   change_file="$ROOT_DIR/change/${SUFFIX}_change.txt"
   status_file="$ROOT_DIR/change/${SUFFIX}_status.txt"
@@ -336,17 +340,17 @@ function delete() {
 
 function mass() {
   activity 'environments'
+  activity 'users'
   activity 'companies'
-  activity 'targetservers'
-  #  activity 'apiproducts'
-  #    activity 'developers'
-  #  activity 'apis'
+    activity 'apiproducts'
+  #  activity 'targetservers'
+      activity 'developers'
+#    activity 'apis'
   #  activity 'sharedflows'
-  #  activity 'users'
   #        activity 'virtualhosts'
   #      activity 'keyvaluemaps'
   #      activity 'userroles'
-  #      activity 'caches'
+        activity 'caches'
   #      activity 'keystores'
   #      activity 'references'
   #      activity 'reports'

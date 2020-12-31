@@ -4,6 +4,6 @@ source ../functions.sh
 source ../env_var.sh
 
 makeDir
-delete "$CONTEXT"
+delete "organizations/$ORG/$CONTEXT"
 copy
 compress
