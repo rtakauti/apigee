@@ -8,7 +8,8 @@ TEMP=$(mktemp)
 export TEMP
 export USERNAME=email
 export PASSWORD=password
-export ORG=eval
+export ORG
+export ORGS
 export ENV
 export SUFFIX
 export ROOT_DIR=/c/users/user/apigee

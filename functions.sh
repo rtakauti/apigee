@@ -248,9 +248,9 @@ function create() {
   local object_file
   local sub_file
 
-  URI="$1"
   VERB='POST'
   object_file="$RECOVER/$SUFFIX.txt"
+  URI="$1"
 
   if [[ ! -f "$object_file" ]]; then
     echo 'recover file not found' | tee -a "$LOG"
@@ -276,10 +276,10 @@ function update() {
   local status_file
   local sub_uri
 
-  URI="$1"
   VERB='PUT'
   change_file="$ROOT_DIR/change/${SUFFIX}_change.txt"
   status_file="$ROOT_DIR/change/${SUFFIX}_status.txt"
+  URI="$1"
 
   if [[ "$UPDATE" != 'ON' ]]; then
     echo 'permission to update is disable' | tee -a "$LOG"
@@ -328,7 +328,7 @@ function delete() {
 
   VERB='DELETE'
   object_file="$REMOVE/$SUFFIX.txt"
-  sub_uri="$1"
+  URI="$1"
 
   if [[ "$DELETE" != 'ON' ]]; then
     echo 'permission to delete is disable' | tee -a "$LOG"
@@ -346,8 +346,8 @@ function delete() {
 
     if [[ "${object[1]}" == 'delete' ]]; then
       flag=1
-      URI="$sub_uri/${object[0]}"
-      makeCurl
+      object_uri="${object[0]}"
+      makeCurlObject
       status "$CURL_RESULT remove ${object[0]}"
       cat <"$TEMP" | jq >"$ACTIVITY_DIR/${object[0]}.json"
     fi
@@ -359,22 +359,22 @@ function delete() {
 }
 
 function mass() {
-    activity 'environments'
-    activity 'users'
-    activity 'companies'
+  activity 'environments'
+  activity 'users'
+  activity 'companies'
   activity 'organizations'
-    activity 'apiproducts'
-    activity 'targetservers'
-  #  activity 'developers'
-  #  activity 'apis'
-  #  activity 'sharedflows'
-  #  activity 'virtualhosts'
-  #  activity 'keyvaluemaps'
-  #  activity 'userroles'
-  #  activity 'caches'
-  #  activity 'keystores'
-  #  activity 'references'
-  #  activity 'reports'
+  activity 'apiproducts'
+  activity 'targetservers'
+  activity 'developers'
+  activity 'apis'
+  activity 'sharedflows'
+  activity 'virtualhosts'
+  activity 'keyvaluemaps'
+  activity 'userroles'
+  activity 'caches'
+  activity 'keystores'
+  activity 'references'
+  activity 'reports'
 }
 
 function activity() {
