@@ -6,5 +6,6 @@ source ../functions.sh
 makeDir
 makeBackupList "$CONTEXT" 'list'
 makeBackupSub
+makeBackupSub 'action' 'pods'
 copy
 compress

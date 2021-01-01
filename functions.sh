@@ -158,6 +158,7 @@ function makeBackupList() {
 
 function makeBackupSub() {
   local sub_file
+  local sub_uri
   local object
   local object_uri
   local payload
@@ -169,9 +170,13 @@ function makeBackupSub() {
     return
   fi
 
-  ACTION=$1
+  ACTION="$1"
   name='name'
 
+  if [[ -n "$2" ]]; then
+    sub_uri="/$2"
+  fi
+  
   if [[ "$CONTEXT" == 'developers' ]] || [[ "$CONTEXT" == 'users' ]]; then
     name='email'
   fi
@@ -185,7 +190,7 @@ function makeBackupSub() {
     fi
 
     object_uri="${object// /%20}"
-    makeCurlObject
+    makeCurlObject "$sub_uri"
     status "$CURL_RESULT backup done see $sub_file"
     payload=$(jq <"$TEMP")
     echo "$payload" >"$sub_file"
@@ -339,22 +344,22 @@ function delete() {
 }
 
 function mass() {
-  activity 'environments'
-  activity 'users'
-  activity 'companies'
+#  activity 'environments'
+#  activity 'users'
+#  activity 'companies'
   activity 'organizations'
-#  activity 'apiproducts'
-#  activity 'targetservers'
-#  activity 'developers'
-#  activity 'apis'
-#  activity 'sharedflows'
-#  activity 'virtualhosts'
-#  activity 'keyvaluemaps'
-#  activity 'userroles'
-#  activity 'caches'
-#  activity 'keystores'
-#  activity 'references'
-#  activity 'reports'
+  #  activity 'apiproducts'
+  #  activity 'targetservers'
+  #  activity 'developers'
+  #  activity 'apis'
+  #  activity 'sharedflows'
+  #  activity 'virtualhosts'
+  #  activity 'keyvaluemaps'
+  #  activity 'userroles'
+  #  activity 'caches'
+  #  activity 'keystores'
+  #  activity 'references'
+  #  activity 'reports'
 }
 
 function activity() {
