@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source "$ROOT_DIR/organization.sh"
+
 function makeDir() {
   BACKUP_DIR="$ROOT_DIR/backup/$DATE"
   RECOVER_DIR="$ROOT_DIR/recover/$DATE"
@@ -146,9 +148,17 @@ function makeBackupList() {
   if [[ "$type" == 'list' ]]; then
     LIST=$(echo "$payload" | jq '.[]' | sed 's/\"//g')
     echo "$LIST" | sed 's/$/|not_delete/' >"$REMOVE/$SUFFIX.txt"
+
     if [[ "$CONTEXT" == 'environments' ]]; then
       printf "export ENVS=(%s)\n" "$(echo "$payload" | jq -c '.[]' | sed ':a;N;$!ba;s/\n/ /g')" >"$ROOT_DIR/environments.sh"
     fi
+
+    if [[ "$CONTEXT" == 'organizations' ]] && [[ -n "$LIST" ]]; then
+      printf "export ORGS=(%s)\n" "$(echo "$payload" | jq -c '.[]' | sed ':a;N;$!ba;s/\n/ /g')" >"$ROOT_DIR/organizations.sh"
+    else
+      echo "export ORGS=(\"$ORG\")" >"$ROOT_DIR/organizations.sh"
+    fi
+
   fi
 
   if [[ "$type" == 'jq' ]]; then
@@ -176,7 +186,7 @@ function makeBackupSub() {
   if [[ -n "$2" ]]; then
     sub_uri="/$2"
   fi
-  
+
   if [[ "$CONTEXT" == 'developers' ]] || [[ "$CONTEXT" == 'users' ]]; then
     name='email'
   fi
@@ -261,11 +271,12 @@ function create() {
 function update() {
   local object
   local objects
+  local object_uri
   local change_file
   local status_file
   local sub_uri
 
-  sub_uri="$1"
+  URI="$1"
   VERB='PUT'
   change_file="$ROOT_DIR/change/${SUFFIX}_change.txt"
   status_file="$ROOT_DIR/change/${SUFFIX}_status.txt"
@@ -280,25 +291,29 @@ function update() {
     return
   fi
 
+  if [[ -n "$2" ]]; then
+    sub_uri="/$2"
+  fi
+
   cp "$change_file" "$ACTIVITY_DIR"
 
   if [[ -f "$status_file" ]]; then
     cp "$status_file" "$ACTIVITY_DIR"
     while IFS= read -r objects; do
       IFS='|' read -ra object <<<"$objects"
-      URI="$sub_uri/${object[0]}?action=${object[1]}"
+      object_uri="${object[0]}?action=${object[1]}"
       CONTENT_TYPE='Content-Type: application/octet-stream'
-      makeCurl
+      makeCurlObject
       status "$CURL_RESULT updated ${object[0]} to status ${object[1]}"
     done <"$status_file"
   fi
 
   while IFS= read -r objects; do
     IFS='|' read -ra object <<<"$objects"
-    URI="$sub_uri/${object[0]}"
+    object_uri="${object[0]}"
     CONTENT_TYPE='Content-Type: application/json'
     DATA="${object[1]}"
-    makeCurl
+    makeCurlObject "$sub_uri"
     status "$CURL_RESULT updated ${object[0]} to ${object[1]}"
     cat <"$TEMP" | jq >"$ACTIVITY_DIR/${object[0]}.json"
   done <"$change_file"
@@ -344,12 +359,12 @@ function delete() {
 }
 
 function mass() {
-#  activity 'environments'
-#  activity 'users'
-#  activity 'companies'
+    activity 'environments'
+    activity 'users'
+    activity 'companies'
   activity 'organizations'
-  #  activity 'apiproducts'
-  #  activity 'targetservers'
+    activity 'apiproducts'
+    activity 'targetservers'
   #  activity 'developers'
   #  activity 'apis'
   #  activity 'sharedflows'

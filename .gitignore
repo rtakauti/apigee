@@ -12,3 +12,5 @@ zips/
 .idea/
 env_var.sh
 desktop.ini
+organization.sh
+organizations.sh
