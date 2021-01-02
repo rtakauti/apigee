@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source "$ROOT_DIR/organization.sh"
-
 function makeDir() {
   BACKUP_DIR="$ROOT_DIR/backup/$DATE"
   RECOVER_DIR="$ROOT_DIR/recover/$DATE"
@@ -92,13 +90,14 @@ function compress() {
     fi
     rm -rf "$DATE"
   )
-    if [[ "$MASS" != true ]]; then
-      (
+
+  if [[ "$MASS" != true ]]; then
+    (
       cd "$ROOT_DIR/$ACTIVITY" || exit
       7z a -r "APIGEE_$DATE".zip "$DATE" >/dev/null
       rm -rf "$DATE"
-      )
-      fi
+    )
+  fi
 
   if [[ "$ACTIVITY" == 'backup' ]]; then
     (
@@ -136,10 +135,10 @@ function makeBackupList() {
   local file
   local jq_query
 
+  VERB='GET'
   URI="$1"
   type="$2"
   jq_query="$3"
-  VERB='GET'
   file="${FILENAME}_${type}.json"
 
   if [[ -z "$type" ]]; then
@@ -151,18 +150,21 @@ function makeBackupList() {
   payload=$(jq <"$TEMP")
   echo "$payload" >"$file"
 
+  if [[ -z "$payload" ]]; then
+    echo 'no items found' | tee -a "$LOG"
+    return
+  fi
+
   if [[ "$type" == 'list' ]]; then
     LIST=$(echo "$payload" | jq '.[]' | sed 's/\"//g')
-    echo "$LIST" | sed 's/$/|not_delete/' >"$REMOVE/$SUFFIX.txt"
+    echo "$payload" | jq 'map(.+"|not_delete") | .[]' | sed 's/\"//g' >"$REMOVE/$SUFFIX.txt"
 
     if [[ "$CONTEXT" == 'environments' ]]; then
       printf "export ENVS=(%s)\n" "$(echo "$payload" | jq -c '.[]' | sed ':a;N;$!ba;s/\n/ /g')" >"$ROOT_DIR/environments.sh"
     fi
 
-    if [[ "$CONTEXT" == 'organizations' ]] && [[ -n "$LIST" ]]; then
+    if [[ "$CONTEXT" == 'organizations' ]]; then
       printf "export ORGS=(%s)\n" "$(echo "$payload" | jq -c '.[]' | sed ':a;N;$!ba;s/\n/ /g')" >"$ROOT_DIR/organizations.sh"
-    else
-      echo "export ORGS=(\"$ORG\")" >"$ROOT_DIR/organizations.sh"
     fi
 
   fi
@@ -182,7 +184,6 @@ function makeBackupSub() {
   local name
 
   if [[ -z "$LIST" ]]; then
-    echo 'no items found' | tee -a "$LOG"
     return
   fi
 
@@ -366,11 +367,11 @@ function delete() {
 
 function mass() {
   activity 'organizations'
-#  activity 'environments'
+  activity 'environments'
+  activity 'users'
   activity 'companies'
-  activity 'targetservers'
-  #  activity 'users'
-#  activity 'apiproducts'
+  #  activity 'targetservers'
+  #  activity 'apiproducts'
   #  activity 'developers'
   #  activity 'apis'
   #  activity 'sharedflows'

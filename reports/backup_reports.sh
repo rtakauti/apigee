@@ -2,9 +2,12 @@
 
 source ../env_var.sh
 source ../functions.sh
+source ../organizations.sh
 
-makeDir
-makeBackupList "organizations/$ORG/$CONTEXT" 'jq' '[[.qualifier[].name],[.qualifier[].displayName]] | transpose[] | .[0]+"|"+.[1]'
-makeBackupSub
-copy
+for ORG in ${ORGS[*]}; do
+  makeDir
+  makeBackupList "organizations/$ORG/$CONTEXT" 'jq' '[[.qualifier[].name],[.qualifier[].displayName]] | transpose[] | .[0]+"|"+.[1]'
+  makeBackupSub
+  copy
+done
 compress

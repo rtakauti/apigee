@@ -2,9 +2,12 @@
 
 source ../env_var.sh
 source ../functions.sh
+source ../organizations.sh
 
-makeDir
-makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-makeBackupSub 'revision'
-copy
+for ORG in ${ORGS[*]}; do
+  makeDir
+  makeBackupList "organizations/$ORG/$CONTEXT" 'list'
+  makeBackupSub 'revision'
+  copy
+done
 compress
