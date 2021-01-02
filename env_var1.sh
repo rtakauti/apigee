@@ -12,6 +12,7 @@ export ORG
 export ORGS
 export ENV
 export SUFFIX
+export MASS
 export ROOT_DIR=/c/users/user/apigee
 export APIGEE=https://api.enterprise.apigee.com
 export URL="$APIGEE/v1/organizations/$ORG"

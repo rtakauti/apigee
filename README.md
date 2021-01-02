@@ -10,7 +10,9 @@ To install it is necessary to:
 1. install 7zip for windows, linux or mac
 1. install dos2unix for linux
 1. rename `env_var1.sh` to `env_var.sh`
-1. Edit `env_var.sh` with data from the Apigee account and path
+1. rename `organization1.sh` to `organization.sh`
+1. Edit `env_var.sh` with data from your Apigee account and path
+1. Edit `organization.sh` with data from your organization default from your Apigee account
 
 ## How to use
 

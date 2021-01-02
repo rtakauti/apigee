@@ -12,13 +12,12 @@ function makeDir() {
   CREATE_DIR="$ROOT_DIR/create/$DATE"
   ACTIVITY="$(echo "${0##*/}" | cut -d'_' -f1)"
   CONTEXT=$(basename "$(pwd)")
-  ACTIVITY_DIR="$ACTIVITY/$DATE"
-  SUFFIX="$CONTEXT"
+  ACTIVITY_DIR="$ACTIVITY/$DATE/$ORG"
+  SUFFIX="${CONTEXT}_$ORG"
 
   if [[ -n $ENV ]]; then
-    RECOVER_DIR="$ROOT_DIR/recover/$DATE/$ENV"
-    ACTIVITY_DIR="$ACTIVITY/$DATE/$ENV"
-    SUFFIX="${CONTEXT}_$ENV"
+    ACTIVITY_DIR="$ACTIVITY_DIR/$ENV"
+    SUFFIX="${SUFFIX}_$ENV"
   fi
 
   mkdir -p "$ACTIVITY_DIR"
@@ -71,36 +70,43 @@ function copy() {
   local parent_log
 
   parent=$(dirname "$PWD")
-  parent_log="$ROOT_DIR/$ACTIVITY/$DATE"/$(basename "$parent")_log.txt
+  parent_log="$ROOT_DIR/$ACTIVITY/$DATE/$ORG"/$(basename "$parent")_log.txt
 
   if [[ -f "$parent_log" ]]; then
-    cat "$FILENAME"_log.txt >>"$parent_log"
+    cat "$LOG" >>"$parent_log"
   fi
 }
 
 function compress() {
-  local context_dir
-  local recover_dir
-
-  context_dir="$ROOT_DIR/$ACTIVITY/$DATE"
-  recover_dir="$ROOT_DIR/recover"
   CONTEXT=$(basename "$(pwd)")
 
   (
     cd "$ACTIVITY" || exit
-    7z a -r "${CONTEXT^^}_$DATE".zip "$DATE" >/dev/null
-    cp "${CONTEXT^^}"_"$DATE".zip "$context_dir"
+    if [[ "$CONTEXT" == 'apigee' ]]; then
+      7z a -r "${CONTEXT^^}_$DATE".zip "$DATE" >/dev/null
+    else
+      mkdir -p "$ROOT_DIR/$ACTIVITY/$DATE/$ORG"
+      7z a -r "${CONTEXT^^}_$DATE".zip "./$DATE/$ORG/*.*" >/dev/null
+      mv "${CONTEXT^^}_$DATE.zip" "$ROOT_DIR/$ACTIVITY/$DATE/$ORG/${CONTEXT^^}_$DATE.zip"
+      7z a -r "${CONTEXT^^}_$DATE".zip "$DATE" >/dev/null
+    fi
     rm -rf "$DATE"
   )
+    if [[ "$MASS" != true ]]; then
+      (
+      cd "$ROOT_DIR/$ACTIVITY" || exit
+      7z a -r "APIGEE_$DATE".zip "$DATE" >/dev/null
+      rm -rf "$DATE"
+      )
+      fi
 
   if [[ "$ACTIVITY" == 'backup' ]]; then
     (
-      cd "$recover_dir" || exit
-      7z a -r "RECOVER_$DATE".zip "$recover_dir/$DATE" >/dev/null
-      rm -rf "${recover_dir:?}/$DATE"
+      cd "$RECOVER" || exit
+      7z a -r "RECOVER_$DATE".zip "./$DATE/*.txt" >/dev/null
+      rm -rf "$DATE"
     )
   fi
-
 }
 
 function makeCurl() {
@@ -229,8 +235,8 @@ function makeBackupSub() {
 
   done
 
-  cat "$FILENAME.txt" >"$RECOVER_DIR/$CONTEXT.txt"
   cp "$FILENAME.txt" "$RECOVER/$SUFFIX.txt"
+  cp "$FILENAME.txt" "$RECOVER_DIR/$SUFFIX.txt"
 
   if [[ "$ACTION" == 'status' ]]; then
     mv "${FILENAME}_status.txt" "$ROOT_DIR/change/${SUFFIX}_status.txt"
@@ -257,7 +263,7 @@ function create() {
     return
   fi
 
-  cp "$object_file" "$ACTIVITY_DIR/$SUFFIX.txt"
+  cp "$object_file" "$ACTIVITY_DIR/$CONTEXT.txt"
   while IFS= read -r object; do
     CONTENT_TYPE='Content-Type: application/json'
     DATA="$object"
@@ -295,10 +301,10 @@ function update() {
     sub_uri="/$2"
   fi
 
-  cp "$change_file" "$ACTIVITY_DIR"
+  cp "$change_file" "$ACTIVITY_DIR/${CONTEXT}_change.txt"
 
   if [[ -f "$status_file" ]]; then
-    cp "$status_file" "$ACTIVITY_DIR"
+    cp "$status_file" "$ACTIVITY_DIR//${CONTEXT}_status.txt"
     while IFS= read -r objects; do
       IFS='|' read -ra object <<<"$objects"
       object_uri="${object[0]}?action=${object[1]}"
@@ -339,7 +345,7 @@ function delete() {
     echo 'remove file not found' | tee -a "$LOG"
     return
   fi
-  cp "$object_file" "$ACTIVITY_DIR/$SUFFIX.txt"
+  cp "$object_file" "$ACTIVITY_DIR/$CONTEXT.txt"
 
   while IFS= read -r objects; do
     IFS='|' read -ra object <<<"$objects"
@@ -359,22 +365,22 @@ function delete() {
 }
 
 function mass() {
-  activity 'environments'
-  activity 'users'
-  activity 'companies'
   activity 'organizations'
-  activity 'apiproducts'
+#  activity 'environments'
+  activity 'companies'
   activity 'targetservers'
-  activity 'developers'
-  activity 'apis'
-  activity 'sharedflows'
-  activity 'virtualhosts'
-  activity 'keyvaluemaps'
-  activity 'userroles'
-  activity 'caches'
-  activity 'keystores'
-  activity 'references'
-  activity 'reports'
+  #  activity 'users'
+#  activity 'apiproducts'
+  #  activity 'developers'
+  #  activity 'apis'
+  #  activity 'sharedflows'
+  #  activity 'virtualhosts'
+  #  activity 'keyvaluemaps'
+  #  activity 'userroles'
+  #  activity 'caches'
+  #  activity 'keystores'
+  #  activity 'references'
+  #  activity 'reports'
 }
 
 function activity() {
