@@ -12,6 +12,14 @@ function makeDir() {
   CONTEXT=$(basename "$(pwd)")
   ACTIVITY_DIR="$ACTIVITY/$DATE/$ORG"
   SUFFIX="${CONTEXT}_$ORG"
+  LOG="$ACTIVITY/$DATE/$ORG/${CONTEXT}_log.txt"
+
+  if [[ "$CONTEXT" == 'apigee' ]]; then
+    ACTIVITY_DIR="$ACTIVITY/$DATE"
+    SUFFIX="$CONTEXT"
+    LOG="$ACTIVITY/$DATE/${CONTEXT}_log.txt"
+
+  fi
 
   if [[ -n $ENV ]]; then
     ACTIVITY_DIR="$ACTIVITY_DIR/$ENV"
@@ -20,7 +28,6 @@ function makeDir() {
 
   mkdir -p "$ACTIVITY_DIR"
   FILENAME="$ACTIVITY_DIR/$CONTEXT"
-  LOG="${FILENAME}_log.txt"
 
   if [[ "$ACTIVITY" == 'backup' ]]; then
     mkdir -p "$RECOVER_DIR"
@@ -40,9 +47,9 @@ function header() {
   local columns
 
   columns=$(tput cols)
-  echo --------------------------------------------------------------------------------------------------------- | tee -a "$LOG"
-  printf "%*s\n" $(((${#CONTEXT} + columns) / 3)) "START ${ACTIVITY^^} ${ENV^^} ${CONTEXT^^} - $DATE" | tee -a "$LOG"
-  echo --------------------------------------------------------------------------------------------------------- | tee -a "$LOG"
+  echo ----------------------------------------------------------------------------------------------------------------------------------- | tee -a "$LOG"
+  printf "%*s\n" $(((${#CONTEXT} + columns) / 2)) "START ${ACTIVITY^^} ${ORG^^} ${ENV^^} ${CONTEXT^^} - $DATE" | tee -a "$LOG"
+  echo ----------------------------------------------------------------------------------------------------------------------------------- | tee -a "$LOG"
 }
 
 function status() {
@@ -64,19 +71,12 @@ function status() {
 }
 
 function copy() {
-  local parent
-  local parent_log
-
-  parent=$(dirname "$PWD")
-  parent_log="$ROOT_DIR/$ACTIVITY/$DATE/$ORG"/$(basename "$parent")_log.txt
-
-  if [[ -f "$parent_log" ]]; then
-    cat "$LOG" >>"$parent_log"
-  fi
+  cat "$LOG" >>"$ROOT_DIR/$ACTIVITY/$DATE/apigee_log.txt"
 }
 
 function compress() {
   CONTEXT=$(basename "$(pwd)")
+  mkdir -p "$ROOT_DIR/$ACTIVITY/$DATE/$ORG"
 
   (
     cd "$ACTIVITY" || exit
@@ -367,10 +367,10 @@ function delete() {
 
 function mass() {
   activity 'organizations'
-  activity 'environments'
-  activity 'users'
+    activity 'users'
+    activity 'environments'
   activity 'companies'
-  #  activity 'targetservers'
+  activity 'targetservers'
   #  activity 'apiproducts'
   #  activity 'developers'
   #  activity 'apis'

@@ -7,6 +7,8 @@ MASS=true
 source ./env_var.sh
 source ./functions.sh
 
+export ORG
+
 makeDir
 mass
 compress
