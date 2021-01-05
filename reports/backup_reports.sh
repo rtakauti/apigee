@@ -7,7 +7,7 @@ source ../organizations.sh
 for ORG in ${ORGS[*]}; do
   makeDir
   makeBackupList "organizations/$ORG/$CONTEXT" 'jq' '[[.qualifier[].name],[.qualifier[].displayName]] | transpose[] | .[0]+"|"+.[1]'
-  makeBackupSub
+  makeBackupSub "organizations/$ORG/$CONTEXT"
   copy
 done
 compress

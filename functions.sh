@@ -187,11 +187,12 @@ function makeBackupSub() {
     return
   fi
 
-  ACTION="$1"
+  URI="$1"
+  ACTION="$2"
   name='name'
 
-  if [[ -n "$2" ]]; then
-    sub_uri="/$2"
+  if [[ -n "$3" ]]; then
+    sub_uri="/$3"
   fi
 
   if [[ "$CONTEXT" == 'developers' ]] || [[ "$CONTEXT" == 'users' ]]; then
@@ -371,6 +372,7 @@ function mass() {
     activity 'environments'
   activity 'companies'
   activity 'targetservers'
+  activity 'apps'
   #  activity 'apiproducts'
   #  activity 'developers'
   #  activity 'apis'

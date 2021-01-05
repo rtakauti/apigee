@@ -7,7 +7,7 @@ source ../organizations.sh
 for ORG in ${ORGS[*]}; do
   makeDir
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupSub 'revision'
+  makeBackupSub "organizations/$ORG/$CONTEXT" 'revision'
   copy
 done
 compress

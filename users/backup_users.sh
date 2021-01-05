@@ -5,6 +5,6 @@ source ../functions.sh
 
 makeDir
 makeBackupList "$CONTEXT" 'list'
-makeBackupSub
+makeBackupSub "$CONTEXT"
 copy
 compress

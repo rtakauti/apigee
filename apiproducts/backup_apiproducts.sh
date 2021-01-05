@@ -8,7 +8,7 @@ for ORG in ${ORGS[*]}; do
   makeDir
   makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'expand'
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupSub
+  makeBackupSub "organizations/$ORG/$CONTEXT"
   copy
 done
 compress
