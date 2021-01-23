@@ -182,6 +182,8 @@ function makeBackupSub() {
   local payload
   local revision_dir
   local name
+  local revision_max
+  local revisions
 
   if [[ -z "$LIST" ]]; then
     return
@@ -214,15 +216,23 @@ function makeBackupSub() {
     echo "$payload" >"$sub_file"
 
     if [[ "$ACTION" == 'revision' ]]; then
-      for revision in $(echo "$payload" | jq '.revision | .[]' | sed 's/\"//g'); do
+      revisions=$(echo "$payload" | jq '.revision[]' | sed 's/\"//g')
+      IFS=$'\n'
+      revision_max=$(echo "${revisions[*]}" | sort -nr | head -n1)
+      for revision in $revisions; do
         revision_dir="$ROOT_DIR/revisions/$CONTEXT/$object/$revision"
         mkdir -p "$revision_dir"
         (
           cd "$revision_dir" || exit
           makeCurlObject "/revisions/${revision}?format=bundle"
-          7z x "$TEMP" >/dev/null
+          7z x "$TEMP" -aoa >/dev/null
         )
-        status "$CURL_RESULT revision done see revision/$object/revision_${revision}.zip"
+
+        if [[ $revision == "$revision_max" ]]; then
+          cp "$TEMP" "$ROOT_DIR/uploads/$CONTEXT/${object}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
+        fi
+
+        status "$CURL_RESULT revision done see revision/$object/$revision"
       done
     fi
 
@@ -368,8 +378,8 @@ function delete() {
 
 function mass() {
   activity 'organizations'
-    activity 'users'
-    activity 'environments'
+  activity 'users'
+  activity 'environments'
   activity 'companies'
   activity 'targetservers'
   activity 'apps'

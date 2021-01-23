@@ -16,4 +16,6 @@ rm -rf ./delete/*
 rm -rf ./zips/*.zip
 rm -rf ./revisions/apis/*
 rm -rf ./revisions/sharedflows/*
+rm -rf ./uploads/apis/*
+rm -rf ./uploads/sharedflows/*
 mass
