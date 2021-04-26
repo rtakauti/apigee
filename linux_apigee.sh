@@ -7,4 +7,5 @@ ACTIVITY="$(echo "${0##*/}" | cut -d'_' -f1)"
 export ACTIVITY
 
 dos2unix ./*.*
+chmod +x ./*.sh
 mass

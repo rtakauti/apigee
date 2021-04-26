@@ -2,11 +2,14 @@
 
 source ../functions.sh
 source ../env_var.sh
-source ../environments.sh
+source ../organizations.sh
 
-for ENV in ${ENVS[*]}; do
-  makeDir
-  delete "organizations/$ORG/environments/$ENV/$CONTEXT"
-  copy
+for ORG in "${ORGS[@]}"; do
+  source ../environments.sh
+  for ENV in "${ENVS[@]}"; do
+    makeDir
+    delete "organizations/$ORG/environments/$ENV/$CONTEXT"
+    copy
+  done
+  compress
 done
-compress

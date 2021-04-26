@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
-source ../functions.sh
 source ../env_var.sh
+source ../functions.sh
+source ../organizations.sh
 
-makeDir
-delete "organizations/$ORG/$CONTEXT"
-copy
-compress
+for ORG in ${ORGS[*]}; do
+  makeDir
+  delete "organizations/$ORG/$CONTEXT"
+  copy
+  compress
+done

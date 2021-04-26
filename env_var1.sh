@@ -23,3 +23,4 @@ if [[ -z $DATE ]]; then
     export DATE
 fi
 export LIST
+export REPO="git@github.com:user/repository"

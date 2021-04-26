@@ -9,5 +9,5 @@ for ORG in ${ORGS[*]}; do
   makeBackupList "organizations/$ORG/$CONTEXT" 'jq' '[[.qualifier[].name],[.qualifier[].displayName]] | transpose[] | .[0]+"|"+.[1]'
   makeBackupSub "organizations/$ORG/$CONTEXT"
   copy
+  compress
 done
-compress

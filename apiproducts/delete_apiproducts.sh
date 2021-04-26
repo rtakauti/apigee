@@ -8,5 +8,5 @@ for ORG in ${ORGS[*]}; do
   makeDir
   delete "organizations/$ORG/$CONTEXT"
   copy
+  compress
 done
-compress

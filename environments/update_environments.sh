@@ -2,8 +2,11 @@
 
 source ../env_var.sh
 source ../functions.sh
+source ../organizations.sh
 
-makeDir
-update "organizations/$ORG/$CONTEXT"
-copy
-compress
+for ORG in ${ORGS[*]}; do
+  makeDir
+  update "organizations/$ORG/$CONTEXT"
+  copy
+  compress
+done

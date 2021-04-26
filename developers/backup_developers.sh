@@ -10,5 +10,5 @@ for ORG in ${ORGS[*]}; do
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
   makeBackupSub "organizations/$ORG/$CONTEXT" 'status'
   copy
+  compress
 done
-compress

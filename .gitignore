@@ -10,7 +10,9 @@ swaggers/
 bundles/
 uploads/
 zips/
+git/
 .idea/
 env_var.sh
 desktop.ini
 organizations.sh
+environments.sh
