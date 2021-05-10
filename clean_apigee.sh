@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-source ./env_var.sh
-source ./functions.sh
+source env_var.sh
+source functions.sh
 
-ACTIVITY="$(echo "${0##*/}" | cut -d'_' -f1)"
+setActivity
 export ACTIVITY
 rm -rf ./backup/*
 rm -rf ./create/*
@@ -14,8 +14,6 @@ rm -rf ./change/*
 rm -rf ./remove/*
 rm -rf ./delete/*
 rm -rf ./zips/*.zip
-rm -rf ./revisions/apis/*
-rm -rf ./revisions/sharedflows/*
-rm -rf ./uploads/apis/*
-rm -rf ./uploads/sharedflows/*
+rm -rf ./revisions/*
+rm -rf ./uploads/*
 mass

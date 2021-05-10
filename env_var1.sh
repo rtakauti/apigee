@@ -11,12 +11,12 @@ export PASSWORD=password
 export ORG=eval
 export ENV
 export SUFFIX
-export MASS
 export ROOT_DIR=/c/users/user/apigee
 export APIGEE=https://api.enterprise.apigee.com
-export COMPANY="Test"
-export DELETE="OFF"
-export UPDATE="OFF"
+export COMPANY='Test'
+export DELETE='OFF'
+export UPDATE='OFF'
+export GIT='OFF'
 export AUTH="$USERNAME:$PASSWORD"
 if [[ -z $DATE ]]; then
     DATE=$(date +"%Y-%m-%d_%H-%M-%S")

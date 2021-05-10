@@ -6,6 +6,7 @@ source ../organizations.sh
 
 for ORG in ${ORGS[*]}; do
   makeDir
+  header
   create "organizations/$ORG/$CONTEXT"
   copy
   compress

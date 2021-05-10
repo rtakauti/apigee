@@ -8,6 +8,7 @@ for ORG in "${ORGS[@]}"; do
   source ../environments.sh
   for ENV in "${ENVS[@]}"; do
     makeDir
+    header
     delete "organizations/$ORG/environments/$ENV/$CONTEXT"
     copy
   done

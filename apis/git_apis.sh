@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
 source ../env_var.sh
-source ../functions.sh
-source ../organizations.sh
-source ../environments.sh
+source "$ROOT_DIR/functions.sh"
+source "$ROOT_DIR/organizations.sh"
 
-discover
-ssh_create "$CONTEXT"
+setContext
+clone
+createSsh "$CONTEXT"
 json "$CONTEXT"
 revision "$CONTEXT"
-revision_zip "$CONTEXT"
+revisionZip "$CONTEXT"
