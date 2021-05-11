@@ -109,12 +109,14 @@ function makeBackupSub() {
   local object_uri
   local sub_object
   local payload
+  local payload1
   local revision_dir
   local name
   local revision_max
   local revisions
   local rev
   local jq_query
+  local jq_query_sub
 
   if [[ -z "$LIST" ]]; then
     return
@@ -125,31 +127,29 @@ function makeBackupSub() {
   SUB_ACTION="$3"
   name='name'
 
-  if [[ -n "$3" ]]; then
-    sub_uri="/$3"
-    sub_object="_$3"
-  fi
-
   if [[ "$CONTEXT" == 'developers' ]] || [[ "$CONTEXT" == 'users' ]]; then
     name='email'
   fi
 
   for object in $LIST; do
 
-    sub_file="$ACTIVITY_DIR/${object}.json"
+    sub_file="$ACTIVITY_DIR/${object}"
     if [[ -n "$SUB_ACTION" ]]; then
       mkdir -p "$ACTIVITY_DIR/$SUB_ACTION"
-      sub_file="$ACTIVITY_DIR/$SUB_ACTION/${object}.json"
+      sub_file="$ACTIVITY_DIR/$SUB_ACTION/${object}_$SUB_ACTION"
+      sub_uri="/$SUB_ACTION"
+      sub_object="_$SUB_ACTION"
+      FILENAME="$ACTIVITY_DIR/$SUB_ACTION/${CONTEXT}_$SUB_ACTION"
     fi
 
     if [[ "$type" == 'jq' ]]; then
       IFS='|' read -ra object <<<"$object"
-      sub_file="$ACTIVITY_DIR/${object[1]}.json"
+      sub_file="$ACTIVITY_DIR/${object[1]}"
     fi
 
     object_uri="${object// /%20}"
     makeCurlObject "$sub_uri"
-    status "$CURL_RESULT backup ${CONTEXT^^} done see $sub_file"
+    status "$CURL_RESULT backup ${CONTEXT^^} done see $sub_file.json"
 
     jq_query='.'
     if [[ "$CONTEXT" == 'apps' ]]; then
@@ -157,7 +157,33 @@ function makeBackupSub() {
     fi
 
     payload=$(cat <"$TEMP" | jq "$jq_query")
-    echo "$payload" >"$sub_file"
+
+    if [[ "$ACTION" == 'list' ]]; then
+      (
+        cd "$ACTIVITY_DIR/$SUB_ACTION" || return
+        jq_query_sub='.[]'
+        if [[ "$SUB_ACTION" == 'developers' ]]; then
+          jq_query_sub='.developer[].email'
+        fi
+        elements=$(echo "$payload" | jq "$jq_query_sub" | sed 's/\"//g')
+        IFS=$'\n'
+        for element in $elements; do
+          makeCurlObject "/$SUB_ACTION/$element"
+          jq_query_sub='.'
+          if [[ "$SUB_ACTION" == 'apps' ]]; then
+            jq_query_sub='.credentials[].consumerKey = "*******" | .credentials[].consumerSecret = "*******"'
+          fi
+          payload1=$(cat <"$TEMP")
+          if [[ "$payload1" ]]; then
+            echo "$payload1" | jq "$jq_query_sub" >"${object}_${SUB_ACTION}_$element.json"
+          fi
+        done
+      )
+      sub_file="$ACTIVITY_DIR/$SUB_ACTION/${object}_${SUB_ACTION}_list"
+    fi
+
+    [[ -n $(echo "$payload" | sed 's/[][]//g') ]] && echo "$payload" >"$sub_file.json"
+    status "$CURL_RESULT backup ${CONTEXT^^} done see $sub_file.json"
 
     if [[ "$ACTION" == 'revision' ]]; then
 
@@ -188,12 +214,12 @@ function makeBackupSub() {
 
     if [[ -z "$SUB_ACTION" ]]; then
       payload=$(echo "$payload" | jq -c '. |  del(.createdAt,.createdBy,.lastModifiedAt,.lastModifiedBy,.organization,.apps,.metaData,.revision)' 2>/dev/null)
-      echo "$payload" >>"$FILENAME.txt"
+      [[ "$payload" ]] && echo "$payload" >>"$FILENAME.txt"
       paste -d "|" <(echo "$payload" | jq --arg name "$name" '.[$name]' | sed 's/\"//g') <(echo "$payload" | jq -c 'del(.name,.status)') >>"${FILENAME}_change.txt"
     else
       payload=$(echo "$payload" | jq -c '.')
-      echo "$payload" >>"$FILENAME$sub_object.txt"
-      echo "$payload" | jq -c '.' >>"${FILENAME}${sub_object}_change.txt"
+      [[ "$payload" ]] && echo "$payload" >>"$FILENAME.txt"
+      [[ "$payload" ]] && echo "$payload" | jq -c '.' >>"${FILENAME}${sub_object}_change.txt"
     fi
 
     if [[ "$ACTION" == 'status' ]]; then
