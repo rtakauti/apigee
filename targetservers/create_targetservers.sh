@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
-source ../env_var.sh
 source ../functions.sh
+source ../env_var.sh
+source ../organizations.sh
 
-targets="$ROOT_DIR/recover/targets"
-while IFS= read -r target; do
-  CURL_RESULT=$(curl --location --request POST --insecure "$APIGEE"/v1/organizations/"$ORG"/environments/"$ENV"/targetservers \
-    --user "$USERNAME:$PASSWORD" \
-    --silent \
-    --write-out "%{http_code}" \
-    --output /dev/null \
-    --header 'Content-Type: application/json' \
-    --data-raw "$target")
-  status "$CURL_RESULT" "$target"
-done <"$targets"
+for ORG in "${ORGS[@]}"; do
+  source ../environments.sh
+  for ENV in "${ENVS[@]}"; do
+    makeDir
+    header
+    create "organizations/$ORG/environments/$ENV/$CONTEXT"
+    copy
+  done
+  compress
+done

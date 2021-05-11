@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
 
 source ../env_var.sh
-source ../functions.sh
+source "$ROOT_DIR/functions.sh"
+source "$ROOT_DIR/organizations.sh"
 
-makeDir
-makeBackupList "environments/$ENV/$CONTEXT" 'list'
-makeBackupSub
-copy
+for ORG in "${ORGS[@]}"; do
+
+  source "$ROOT_DIR/environments.sh"
+  for ENV in "${ENVS[@]}"; do
+
+    makeDir
+    header
+    makeBackupList "organizations/$ORG/environments/$ENV/$CONTEXT" 'list'
+    makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT"
+    copy
+
+  done
+done
 compress
+[[ "$GIT" == 'ON' ]] &&  bash "git_$CONTEXT.sh"
