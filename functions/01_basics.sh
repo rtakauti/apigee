@@ -9,45 +9,24 @@ function setActivity() {
 }
 
 function makeDir() {
+  local backup_dir
+  export LOG
+
   setContext
   setActivity
-  BACKUP_DIR="$ROOT_DIR/backup/$DATE"
-  RECOVER_DIR="$ROOT_DIR/recover/$DATE"
-  RECOVER="$ROOT_DIR/recover"
-  UPDATE_DIR="$ROOT_DIR/update/$DATE"
-  DELETE_DIR="$ROOT_DIR/delete/$DATE"
-  REMOVE="$ROOT_DIR/remove"
-  CREATE_DIR="$ROOT_DIR/create/$DATE"
-  ACTIVITY_DIR="$ACTIVITY/$DATE/$ORG"
-  SUFFIX="${CONTEXT}_$ORG"
-  LOG="$ACTIVITY/$DATE/$ORG/${CONTEXT}_log.txt"
 
-  if [[ "$CONTEXT" == 'apigee' ]]; then
-    ACTIVITY_DIR="$ACTIVITY/$DATE"
-    SUFFIX="$CONTEXT"
-    LOG="$ACTIVITY/$DATE/${CONTEXT}_log.txt"
-  elif [[ "$CONTEXT" == 'organizations' ]] || [[ "$CONTEXT" == 'users' ]]; then
-    ACTIVITY_DIR="$ACTIVITY/$DATE"
-    SUFFIX="$CONTEXT"
+  LOG="$ACTIVITY/$DATE/$ORG/$CONTEXT"
+  backup_dir="$ACTIVITY/$DATE/$ORG"
+
+  if [[ "$CONTEXT" == 'apigee' ]] ||
+    [[ "$CONTEXT" == 'organizations' ]] ||
+    [[ "$CONTEXT" == 'users' ]]; then
+    backup_dir="$ACTIVITY/$DATE"
+    LOG="$ACTIVITY/$DATE/$CONTEXT"
   fi
 
-  if [[ -n $ENV ]]; then
-    ACTIVITY_DIR="$ACTIVITY_DIR/$ENV"
-    SUFFIX="${SUFFIX}_$ENV"
-  fi
-
-  mkdir -p "$ACTIVITY_DIR"
-
-  if [[ "$ACTIVITY" == 'backup' ]]; then
-    mkdir -p "$RECOVER_DIR"
-    mkdir -p "$BACKUP_DIR"
-  elif [[ "$ACTIVITY" == 'update' ]]; then
-    mkdir -p "$UPDATE_DIR"
-  elif [[ "$ACTIVITY" == 'delete' ]]; then
-    mkdir -p "$DELETE_DIR"
-  elif [[ "$ACTIVITY" == 'create' ]]; then
-    mkdir -p "$CREATE_DIR"
-  fi
+  LOG+=".log"
+  mkdir -p "$backup_dir"
 }
 
 function header() {
@@ -93,12 +72,4 @@ function compress() {
     echo "$DATE" >>'list.txt'
     rm -rf "$DATE"
   )
-
-  if [[ "$ACTIVITY" == 'backup' ]]; then
-    (
-      cd "$RECOVER" || return
-      7z a -r "RECOVER_$DATE".zip "./$DATE/*.txt" >/dev/null
-      rm -rf "$DATE"
-    )
-  fi
 }

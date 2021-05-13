@@ -7,8 +7,7 @@ makeDir
 header
 makeBackupList "$CONTEXT" 'list'
 makeBackupSub "$CONTEXT"
-makeBackupSub "$CONTEXT" 'action' 'pods'
+makeBackupSub "$CONTEXT" 'pods'
 copy
 compress
-
 [[ "$GIT" == 'ON' ]] &&  bash "git_$CONTEXT.sh"

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source "$ROOT_DIR/organizations.sh"
-
 function clone() {
   if [[ ! -d "$ROOT_DIR/git" ]]; then
     git clone "$REPO" "$ROOT_DIR/git"
