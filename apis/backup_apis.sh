@@ -13,7 +13,8 @@ for ORG in "${ORGS[@]}"; do
   makeDir
   header
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupSub "organizations/$ORG/$CONTEXT" 'revision'
+  makeBackupSub "organizations/$ORG/$CONTEXT" 'deployments'
+  makeBackupSub "organizations/$ORG/$CONTEXT"
   copy
 
 done

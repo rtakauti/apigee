@@ -11,6 +11,7 @@ for ORG in ${ORGS[*]}; do
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
   makeBackupSub "organizations/$ORG/$CONTEXT"
   makeBackupSub "organizations/$ORG/$CONTEXT" 'servers'
+  makeBackupSub "organizations/$ORG/$CONTEXT" 'deployments'
   copy
 
 done

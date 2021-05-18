@@ -2,16 +2,22 @@
 
 VERB='GET'
 export VERB
-export ELEMENTS
-export SUB_ELEMENTS
+export LIST
+export ITEM
 
 function setFile() {
   backup_dir="backup/$DATE"
   [[ "$ORG" ]] && backup_dir+="/$ORG"
   [[ "$ENV" ]] && backup_dir+="/$ENV"
+  if [[ "$type" ]] && [[ "$type" != 'list' ]] && [[ "$type" != 'expand' ]]; then
+    backup_dir+="/$type"
+  fi
 
-  file="$backup_dir/$CONTEXT"
+  file="$CONTEXT"
   [[ "$type" ]] && file+="_$type"
+  [[ "$element" ]] && file="$element"
+  [[ "$element" ]] && [[ "$CONTEXT" == 'apps' ]] && file="$(jq '.name' "$TEMP" | sed 's/\"//g')"
+  [[ "$type" ]] && [[ "$element" ]] && [[ "$CONTEXT" == 'apps' ]] && file="apps_$type"
 }
 
 function setElements() {
@@ -21,7 +27,7 @@ function setElements() {
   if [[ "$CONTEXT" == 'users' ]]; then
     query='.user[].name'
   fi
-  elements=$(echo "$ELEMENTS" | jq "$query" | sed 's/\"//g')
+  elements=$(echo "$LIST" | jq "$query" | sed 's/\"//g' | sed 's/ //g')
 }
 
 function setRevisions() {
@@ -34,10 +40,10 @@ function setRevisions() {
   local backup_dir
   local upload_dir
 
-  if [[ "$CONTEXT" == 'sharedflows' ]] || [[ "$CONTEXT" == 'apis' ]]; then
+  if [[ -z "$type" ]] && { [[ "$CONTEXT" == 'sharedflows' ]] || [[ "$CONTEXT" == 'apis' ]]; }; then
     uri="$1"
     current_uri="$1"
-    revisions=$(echo "$SUB_ELEMENTS" | jq '.revision[]' | sed 's/\"//g')
+    revisions=$(echo "$ITEM" | jq '.revision[]' | sed 's/\"//g')
     IFS=$'\n'
     revision_max=$(echo "${revisions[*]}" | sort -nr | head -n1)
     revision_dir="$ROOT_DIR/revisions/$CONTEXT/$ORG/$element"
@@ -71,30 +77,29 @@ function setRevisions() {
 }
 
 function makeBackupList() {
-  local file
   local type
   local uri
-  local backup_dir
+  local items
 
   uri="$1"
   type="$2"
-  setFile
 
-  mkdir -p "$backup_dir"
   makeCurl
-  status "$CURL_RESULT backup ${CONTEXT^^} done see $file".json
-  ELEMENTS=$(jq '.' <"$TEMP")
-  echo "$ELEMENTS" >"$file".json
-  setFileContext
+  setFile
+  status "$CURL_RESULT backup ${CONTEXT^^} done see $backup_dir/$file".json
+  items=$(jq '.' "$TEMP")
+  mkdir -p "$backup_dir"
+  echo "$items" >"$backup_dir/$file".json
+  setFileContext "$items"
+  [[ "$type" == 'list' ]] && LIST="$items"
 }
 
 function makeBackupSub() {
   local type
-  local file
   local uri
   local current_uri
-  local backup_dir
   local elements
+  local element
 
   uri="$1"
   current_uri="$1"
@@ -104,19 +109,17 @@ function makeBackupSub() {
   for element in $elements; do
     uri+="/$element"
 
-    setFile
     if [[ "$type" ]]; then
       uri+="/$type"
-      backup_dir+="/$type"
     fi
 
-    mkdir -p "$backup_dir"
-    file="$backup_dir/$element"
     makeCurl
-    status "$CURL_RESULT backup ${CONTEXT^^} done see $file".json
     uri="$current_uri"
-    SUB_ELEMENTS=$(jq '.' <"$TEMP")
-    echo "$SUB_ELEMENTS" >"$file".json
+    setFile
+    status "$CURL_RESULT backup ${CONTEXT^^} done see $backup_dir/$file".json
+    ITEM=$(jq '.' "$TEMP")
+    mkdir -p "$backup_dir"
+    echo "$ITEM" >"$backup_dir/$file".json
     setRevisions "$uri/$element"
   done
 }

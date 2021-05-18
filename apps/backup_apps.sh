@@ -9,8 +9,8 @@ for ORG in ${ORGS[*]}; do
   makeDir
   header
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'jq' '[[.app[].appId],[.app[].name]] | transpose[] | .[0]+"|"+.[1]'
-  makeBackupSub "organizations/$ORG/$CONTEXT" 'jq'
+  makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'expand'
+  makeBackupSub "organizations/$ORG/$CONTEXT"
   copy
 
 done

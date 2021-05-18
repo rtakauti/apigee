@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
 function mass() {
-  activity 'organizations'
-  activity 'environments'
+#  activity 'organizations'
+#  activity 'environments'
 #  activity 'users'
 #  activity 'companies'
+#  activity 'deployments'
 #  activity 'sharedflows'
-#  activity 'apis'
+  activity 'apis'
 #  activity 'apps'
 #  activity 'apiproducts'
 #  activity 'developers'

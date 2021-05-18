@@ -4,16 +4,11 @@ source ../env_var.sh
 source "$ROOT_DIR/functions.sh"
 source "$ROOT_DIR/organizations.sh"
 
-setContext
-rm -rf "$ROOT_DIR/uploads/$CONTEXT"
-rm -rf "$ROOT_DIR/revisions/$CONTEXT"
-
-for ORG in "${ORGS[@]}"; do
+for ORG in ${ORGS[*]}; do
 
   makeDir
   header
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupSub "organizations/$ORG/$CONTEXT"
   copy
 
 done
