@@ -10,7 +10,8 @@ for ORG in ${ORGS[*]}; do
   header
   makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'expand'
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupSub "organizations/$ORG/$CONTEXT"
+  makeBackupSub "organizations/$ORG/$CONTEXT/element"
+  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'attributes'
   copy
 
 done

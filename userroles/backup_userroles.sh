@@ -9,7 +9,10 @@ for ORG in ${ORGS[*]}; do
   makeDir
   header
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupSub "organizations/$ORG/$CONTEXT"
+  makeBackupSub "organizations/$ORG/$CONTEXT/element"
+  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'permissions'
+  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'users'
+  makeBackupSubItem "organizations/$ORG/$CONTEXT/element/users/item" 'users'
   copy
 
 done
