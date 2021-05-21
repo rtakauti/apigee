@@ -174,54 +174,56 @@ function makeBackupSubItem() {
   local type
   local detail
   local extension
+  local check
+  declare -A checksum=(
+    [00eccebe0939574546663ae329e41029]=1 [45249e4154128f693760143690cf86f1]=1 [d41d8cd98f00b204e9800998ecf8427e]=1
+  )
 
   current_uri="$1"
   type="$2"
   detail="$3"
   setFile
   [[ ! -d "$backup_dir" ]] && return
-  (
-    cd "$backup_dir" || return
-    setElements
-    for element in $elements; do
-      if [[ -f "$element".json ]]; then
-        query='.[]'
-        IFS='/' read -ra endpoints <<<"$current_uri"
-        for endpoint in "${endpoints[@]}"; do
-          if [[ "$endpoint" == 'entries' ]]; then
-            query='.entry[].name'
-            break
-          fi
-        done
-        items=$(jq "$query" "$element".json | sed 's/\"//g' | sed 's/ //g')
-        mkdir -p "$element"
-        (
-          cd "$element" || return
-          pre_uri=${current_uri/element/"$element"}
-          for item in $items; do
-            uri=${pre_uri/item/"$item"}
-
-            makeCurl
-            if [[ "$detail" ]]; then
-              extension='json'
-              { [[ "$detail" == 'certificate' ]] || [[ "$detail" == 'export' ]]; } && extension='pem'
-              [[ "$detail" == 'csr' ]] && extension='csr'
-              mkdir -p "$detail"
-              cp "$TEMP" "$detail/$item.$extension"
-              if [[ "$detail" == 'export' ]]; then
-                (
-                  cd "$detail" || return
-                  openssl x509 -pubkey -noout -in "$item.$extension" >"$item.key"
-                )
-              fi
-              status "$CURL_RESULT backup ${CONTEXT^^} done see $backup_dir/$element/$item/$detail/$item.$extension"
-            else
-              status "$CURL_RESULT backup ${CONTEXT^^} done see $backup_dir/$element/$item".json
-              jq '.' "$TEMP" >"$item".json
-            fi
-          done
-        )
+  setElements
+  for element in $elements; do
+    pre_uri=${current_uri/element/"$element"}
+    [[ ! -f "$backup_dir/$element".json ]] && continue
+    query='.[]'
+    IFS='/' read -ra endpoints <<<"$current_uri"
+    for endpoint in "${endpoints[@]}"; do
+      if [[ "$endpoint" == 'entries' ]]; then
+        query='.entry[].name'
+        break
       fi
     done
-  )
+    items=$(jq "$query" "$backup_dir/$element".json | sed 's/\"//g' | sed 's/ //g')
+    for item in $items; do
+      uri=${pre_uri/item/"$item"}
+
+      makeCurl
+      check=$(md5sum "$TEMP" | awk '{ print $1 }')
+      [[ -n "${checksum[$check]}" ]] && continue
+      mkdir -p "$backup_dir/$element"
+      (
+        cd "$backup_dir/$element" || return
+        if [[ "$detail" ]]; then
+          extension='json'
+          { [[ "$detail" == 'certificate' ]] || [[ "$detail" == 'export' ]]; } && extension='pem'
+          [[ "$detail" == 'csr' ]] && extension='csr'
+          mkdir -p "$detail"
+          cp "$TEMP" "$detail/$item.$extension"
+          if [[ "$detail" == 'export' ]]; then
+            (
+              cd "$detail" || return
+              openssl x509 -pubkey -noout -in "$item.$extension" >"$item.key"
+            )
+          fi
+          status "$CURL_RESULT backup ${CONTEXT^^} done see $backup_dir/$element/$item/$detail/$item.$extension"
+        else
+          status "$CURL_RESULT backup ${CONTEXT^^} done see $backup_dir/$element/$item".json
+          jq '.' "$TEMP" >"$item".json
+        fi
+      )
+    done
+  done
 }

@@ -25,6 +25,8 @@ for ORG in "${ORGS[@]}"; do
     makeDir
     header
     makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element" 'deployments'
+    makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element/cachedlogs" 'categories'
+    makeBackupSubItem "organizations/$ORG/environments/$ENV/$CONTEXT/element/cachedlogs/categories/item" 'categories'
     copy
   done
 

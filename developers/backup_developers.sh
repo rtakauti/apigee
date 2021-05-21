@@ -10,9 +10,11 @@ for ORG in ${ORGS[*]}; do
   header
   makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'expand'
   makeBackupList "organizations/$ORG/$CONTEXT" 'list'
+  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'attributes'
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'apps'
+  makeBackupSubItem "organizations/$ORG/$CONTEXT/element/attributes/item" 'attributes'
   copy
 
 done
 compress
-[[ "$GIT" == 'ON' ]] &&  bash "git_$CONTEXT.sh"
+[[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

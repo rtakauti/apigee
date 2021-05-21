@@ -18,6 +18,7 @@ function makeDir() {
   setContext
   setActivity
   mkdir -p "$ACTIVITY/$DATE"
+  mkdir -p "$ROOT_DIR/$ACTIVITY/$DATE"
 }
 
 function header() {
