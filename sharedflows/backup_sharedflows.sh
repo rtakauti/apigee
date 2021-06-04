@@ -12,19 +12,17 @@ for ORG in "${ORGS[@]}"; do
 
   makeDir
   header
-  makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupSub "organizations/$ORG/$CONTEXT/element"
+  makeBackupList "organizations/$ORG/$CONTEXT"
+  cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/LIST.json"
+#  makeBackupSub "organizations/$ORG/$CONTEXT/element"
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'deployments'
-  copy
 
   source "$ROOT_DIR/environments.sh"
   for ENV in "${ENVS[@]}"; do
-    makeDir
-    header
     makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element" 'deployments'
-    copy
   done
 
+  copy
 done
 compress
 [[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

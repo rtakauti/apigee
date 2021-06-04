@@ -3,10 +3,10 @@
 function mass() {
   activity 'organizations'
   activity 'users'
+  activity 'deployments'
   activity 'environments'
   activity 'companies'
   activity 'developers'
-  activity 'deployments'
   activity 'sharedflows'
   activity 'apis'
   activity 'apps'
@@ -20,6 +20,7 @@ function mass() {
   activity 'keyvaluemaps'
   activity 'keystores'
   activity 'references'
+  activity 'stats'
 }
 
 function activity() {
@@ -47,7 +48,7 @@ function execute() {
 
 function clean() {
   local context
-  declare -a activities=("backup" "create" "update" "delete")
+  declare -a activities=("backup" "report")
 
   context="$1"
   for activity in "${activities[@]}"; do

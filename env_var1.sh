@@ -11,8 +11,11 @@ export PASSWORD=password
 export ORG=eval
 export ENV
 export SUFFIX
+export URI
+declare -a ARGUMENTS
+export ARGUMENTS
 export ROOT_DIR=/c/users/user/apigee
-export APIGEE=https://api.enterprise.apigee.com
+export URL=https://api.enterprise.apigee.com
 export COMPANY='Test'
 export DELETE='OFF'
 export UPDATE='OFF'

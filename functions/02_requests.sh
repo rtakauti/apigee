@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 
 function makeCurl() {
+  declare -a arguments
   export CURL_RESULT
 
+  arguments=("$@")
   CURL_RESULT=$(
-    curl --location --request "$VERB" \
-      --insecure "$APIGEE/v1/$uri" \
+    curl "${arguments[@]}" --request "$VERB" \
+      "$URL/v1/$URI" \
       --output "$TEMP" \
       --user "$USERNAME:$PASSWORD" \
-      --silent \
       --header "$CONTENT_TYPE" \
       --write-out "%{http_code}" \
-      --data "$DATA"
+      --insecure \
+      --silent \
+      --location
   )
 }

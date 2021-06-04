@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function setFileContext() {
+function createInitializationFile() {
   local items
   local elements
   local environments
@@ -31,4 +31,27 @@ EOF
       echo '#' "$elements" >>"$ROOT_DIR/environments.sh"
     fi
   fi
+}
+
+function rearrangeFolder() {
+  local list
+  local backup_dir
+
+  backup_dir="backup/$DATE"
+  [[ "$ORG" ]] && backup_dir+="/$ORG"
+  list="$backup_dir/LIST.json"
+  [[ ! -f "$list" ]] && return
+  list=$(jq '.[]' "$list" | sed 's/\"//g')
+  (
+    cd "$backup_dir" || return
+    for folder in */; do
+      for element in $list; do
+        [[ -d "$folder" ]] && mkdir -p "$element" && mv "${folder%?}/$element.json" "$element/${element}_${folder%?}.json"
+      done
+      [[ -d "$folder" ]] && rm -rf "$folder"
+    done
+    for element in $list; do
+      [[ -d "$element" ]] || ([[ ! -d "$element" ]] && mkdir -p "$element") && mv "$element.json" "$element/$element.json"
+    done
+  )
 }

@@ -5,13 +5,13 @@ source "$ROOT_DIR/functions.sh"
 
 makeDir
 header
-makeBackupList "$CONTEXT" 'list'
+makeBackupList "$CONTEXT"
+cp "backup/$DATE/$CONTEXT.json" "backup/$DATE/LIST.json"
 makeBackupSub "$CONTEXT/element"
+makeBackupSub "$CONTEXT/element" 'deployments'
 makeBackupSub "$CONTEXT/element" 'pods'
 makeBackupSub "$CONTEXT/element" 'keyvaluemaps'
-makeBackupSub "$CONTEXT/element" 'resourcefiles'
-makeBackupSubItem "$CONTEXT/element/keyvaluemaps/item" 'keyvaluemaps'
-#makeBackupSubItem "$CONTEXT/element/keyvaluemaps/item" 'keyvaluemaps' 'keys'
+rearrangeFolder
 copy
 compress
 [[ "$GIT" == 'ON' ]] &&  bash "git_$CONTEXT.sh"

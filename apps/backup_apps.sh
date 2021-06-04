@@ -4,15 +4,33 @@ source ../env_var.sh
 source "$ROOT_DIR/functions.sh"
 source "$ROOT_DIR/organizations.sh"
 
-for ORG in ${ORGS[*]}; do
+function optimize() {
+  local expanded
+  local quantity
+  local context
 
+  expanded=$(cat <"backup/$DATE/$ORG/EXPANDED.json")
+  echo "$expanded" | jq '[.app[].name]' >"backup/$DATE/$ORG/LIST.json"
+  quantity=$(echo "$expanded" | jq '.app | length')
+  for index in $(seq 0 $((quantity - 1))); do
+    context=$(echo "$expanded" | jq ".app[$index]")
+    echo "$context" >"backup/$DATE/$ORG/$(echo "$context" | jq ".name" | sed 's/\"//g')".json
+  done
+}
+
+function hide() {
+  jq '.app[].credentials[].consumerKey = "**********" | .app[].credentials[].consumerSecret = "**********"' "backup/$DATE/$ORG/EXPANDED.json" >"backup/$DATE/TEMP.json"
+  mv "backup/$DATE/TEMP.json" "backup/$DATE/$ORG/EXPANDED.json"
+}
+
+for ORG in ${ORGS[*]}; do
   makeDir
   header
-  makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'expand'
-  makeBackupSub "organizations/$ORG/$CONTEXT/element"
+  makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'EXPANDED'
+  hide
+  makeBackupList "organizations/$ORG/$CONTEXT"
+  optimize
   copy
-
 done
 compress
-[[ "$GIT" == 'ON' ]] &&  bash "git_$CONTEXT.sh"
+[[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

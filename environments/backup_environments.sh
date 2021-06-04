@@ -8,11 +8,11 @@ for ORG in ${ORGS[*]}; do
 
   makeDir
   header
-  makeBackupList "organizations/$ORG/$CONTEXT" 'list'
+  makeBackupList "organizations/$ORG/$CONTEXT"
+  cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/LIST.json"
   makeBackupSub "organizations/$ORG/$CONTEXT/element"
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'servers'
-  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'deployments'
-  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'resourcefiles'
+  rearrangeFolder
   copy
 
 done
