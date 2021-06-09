@@ -9,8 +9,7 @@ declare -a actions=(
   monthTrafficProxies
   dayTrafficProxies
   errorTrafficProxies
-  topResponseTimeProxies
-  testResponseTimeProxies
+  overallDataProxies
 )
 
 makeDir
