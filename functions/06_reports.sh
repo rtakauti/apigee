@@ -171,8 +171,8 @@ function errorTrafficProxies() {
   totalArguments
   arguments+=(--data-urlencode 'select=sum(is_error),sum(target_error)')
   arguments+=(--data-urlencode 'sortby=sum(is_error),sum(target_error)')
-  arguments+=(--data-urlencode "$(date '+timeRange=%m/%d/%Y 00:00:00~%m/%d/%Y %H:%M:%S')")
   arguments+=(--data-urlencode 'filter=(response_status_code gt 399 or target_response_code gt 399)')
+  arguments+=(--data-urlencode "$(date '+timeRange=%m/%d/%Y 00:00:00~%m/%d/%Y %H:%M:%S')")
   arguments+=(--data-urlencode 'timeUnit=day')
   makeCurl "${arguments[@]}"
   jq '.' "$TEMP" >"$report_dir/$file.json" &&
@@ -199,12 +199,10 @@ function errorTrafficProxies() {
   jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
 
-
 function overallDataProxies() {
   local URI="organizations/$ORG/environments/$ENV/$CONTEXT/apiproxy,response_status_code,proxy_basepath,proxy_pathsuffix,request_verb"
   local query
   local title
-  local awk_query
   local TZ=GMT
   local file="overall_data_proxies"
   declare -a arguments
@@ -219,9 +217,9 @@ function overallDataProxies() {
   jq '.' "$TEMP" >"$report_dir/$file.json" &&
     status "$CURL_RESULT report overall daily proxies see $report_dir/$file.json"
   title='Timestamp,Organization,Environment,Api Proxy,Response Status Code'
-  title+=',Basepath Endpoint,Request Verb'
-  title+=',Total Traffic,AVG Proxy Response Time,AVG Target Response Time'
-  title+=',AVG Total Response Time,MAX Target Response Time,MAX Total Response Time'
+  title+=',Basepath Endpoint,Request Verb,Total Traffic'
+  title+=',AVG Proxy Response Time,AVG Target Response Time,AVG Total Response Time'
+  title+=',MAX Proxy Response Time,MAX Target Response Time,MAX Total Response Time'
   title+=',AVG Response Size,MAX Response Size'
   title+=',Proxy Error,Target Error,Total Error'
   echo "$title" >>"$report_dir/$file.csv"
@@ -245,21 +243,19 @@ function overallDataProxies() {
   query+=', status_code:($dimension.name | split(",") | .[1])'
   query+=', basepath_endpoint:(($dimension.name | split(",") | .[2])+($dimension.name | split(",") | .[3]))'
   query+=', request_verb:($dimension.name | split(",") | .[4])'
-  query+=', total_traffic:($total_traffic[.key] | tonumber)'
-  query+=', avg_proxy_response_time:(($avg_total_response_time[.key] | tonumber)-($avg_target_response_time[.key] | tonumber))'
-  query+=', avg_target_response_time:($avg_target_response_time[.key] | tonumber)'
-  query+=', avg_total_response_time:($avg_total_response_time[.key] | tonumber)'
-  query+=', max_target_response_time:($max_target_response_time[.key] | tonumber)'
-  query+=', max_total_response_time:($max_total_response_time[.key] | tonumber)'
-  query+=', avg_response_size:($avg_response_size[.key] | tonumber)'
-  query+=', max_response_size:($max_response_size[.key] | tonumber)'
-  query+=', proxy_error:(($total_error[.key] | tonumber)-($target_error[.key] | tonumber))'
-  query+=', target_error:($target_error[.key] | tonumber)'
-  query+=', total_error:($total_error[.key] | tonumber)'
-  query+='})[]]'
+  query+=', total_traffic:($total_traffic[.key] | tonumber | round)'
+  query+=', avg_proxy_response_time:(($avg_total_response_time[.key] | tonumber)-($avg_target_response_time[.key] | tonumber) | round)'
+  query+=', avg_target_response_time:($avg_target_response_time[.key] | tonumber | round)'
+  query+=', avg_total_response_time:($avg_total_response_time[.key] | tonumber | round)'
+  query+=', max_proxy_response_time:(($max_total_response_time[.key] | tonumber)-($max_target_response_time[.key] | tonumber) | round)'
+  query+=', max_target_response_time:($max_target_response_time[.key] | tonumber | round)'
+  query+=', max_total_response_time:($max_total_response_time[.key] | tonumber | round)'
+  query+=', avg_response_size:($avg_response_size[.key] | tonumber | round)'
+  query+=', max_response_size:($max_response_size[.key] | tonumber | round)'
+  query+=', proxy_error:(($total_error[.key] | tonumber)-($target_error[.key] | tonumber) | round)'
+  query+=', target_error:($target_error[.key] | tonumber | round)'
+  query+=', total_error:($total_error[.key] | tonumber | round)'
+  query+='}) | map(select(.total_traffic > 0))[]]'
   query+=' | map(to_entries | map(.value) | @csv)[]'
-  awk_query='BEGIN{ FS=OFS="," }NR>1'
-  awk_query+='{ $9=sprintf("%.2f",$9) }{ $10=sprintf("%.2f",$10) }{ $11=sprintf("%.2f",$11) }'
-  awk_query+='{ $14=sprintf("%.2f",$14) }1'
-  jq -r "$query" "$TEMP" | sed 's/\"//g' | awk "$awk_query" >>"$report_dir/$file.csv"
+  jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
