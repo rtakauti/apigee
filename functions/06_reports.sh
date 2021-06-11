@@ -45,7 +45,7 @@ function totalTrafficProxies() {
   query+=', total_error:($total_error[.key] | tonumber)'
   query+=', total_traffic:($total_traffic[.key] | tonumber)'
   query+='})[]]'
-  query+=' | map(to_entries | map(.value) | @csv)[]'
+  query+=' | sort_by(.apiproxy) | map(to_entries | map(.value) | @csv)[]'
   jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
 
@@ -81,8 +81,8 @@ function monthlyTrafficProxies() {
   query+=', total_success:(($total_traffic[.key] | tonumber)-($total_error[.key] | tonumber))'
   query+=', total_error:($total_error[.key] | tonumber)'
   query+=', total_traffic:($total_traffic[.key] | tonumber)'
-  query+='})[]]'
-  query+=' | map(to_entries | map(.value) | @csv)[]'
+  query+='}) | map(select(.total_traffic > 0))[]]'
+  query+=' | sort_by(.apiproxy) | map(to_entries | map(.value) | @csv)[]'
   jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
 
@@ -118,8 +118,8 @@ function monthTrafficProxies() {
   query+=', total_success:(($total_traffic[.key] | tonumber)-($total_error[.key] | tonumber))'
   query+=', total_error:($total_error[.key] | tonumber)'
   query+=', total_traffic:($total_traffic[.key] | tonumber)'
-  query+='})[]]'
-  query+=' | map(to_entries | map(.value) | @csv)[]'
+  query+='}) | map(select(.total_traffic > 0))[]]'
+  query+=' | sort_by(.apiproxy) | map(to_entries | map(.value) | @csv)[]'
   jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
 
@@ -155,8 +155,8 @@ function dayTrafficProxies() {
   query+=', total_success:(($total_traffic[.key] | tonumber)-($total_error[.key] | tonumber))'
   query+=', total_error:($total_error[.key] | tonumber)'
   query+=', total_traffic:($total_traffic[.key] | tonumber)'
-  query+='})[]]'
-  query+=' | map(to_entries | map(.value) | @csv)[]'
+  query+='}) | map(select(.total_traffic > 0))[]]'
+  query+=' | sort_by(.apiproxy) | map(to_entries | map(.value) | @csv)[]'
   jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
 
@@ -190,36 +190,44 @@ function errorTrafficProxies() {
   query+=", org:\"$ORG\""
   query+=', environment:$environment.name'
   query+=', apiproxy:($dimension.name | split(",") | .[0])'
-  query+=', status:($dimension.name | split(",") | if .[1] != 0 then .[1] else .[2] end)'
+  query+=', status_code:($dimension.name | split(",") | if .[1] != 0 then .[1] else .[2] end)'
   query+=', proxy_error:(($total_error[.key] | tonumber)-($target_error[.key] | tonumber))'
   query+=', target_error:($target_error[.key] | tonumber)'
   query+=', total_error:($total_error[.key] | tonumber)'
   query+='})[]]'
-  query+=' | map(to_entries | map(.value) | @csv)[]'
+  query+=' | sort_by(.apiproxy) | map(to_entries | map(.value) | @csv)[]'
   jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
 
 function overallDataProxies() {
-  local URI="organizations/$ORG/environments/$ENV/$CONTEXT/apiproxy,response_status_code,proxy_basepath,proxy_pathsuffix,request_verb"
+  local URI="organizations/$ORG/environments/$ENV/$CONTEXT/apiproxy,response_status_code,proxy_basepath,proxy_pathsuffix,request_verb,client_id,proxy_client_ip"
   local query
   local title
+  local metrics
   local TZ=GMT
   local file="overall_data_proxies"
   declare -a arguments
 
   totalArguments
-  arguments+=(--data-urlencode 'select=sum(message_count),avg(total_response_time),avg(target_response_time),max(total_response_time),max(target_response_time),avg(response_size),max(response_size),sum(is_error),sum(target_error)')
-  arguments+=(--data-urlencode 'sortby=sum(message_count),avg(total_response_time),avg(target_response_time),max(total_response_time),max(target_response_time),avg(response_size),max(response_size),sum(is_error),sum(target_error)')
+  metrics='sum(message_count),avg(total_response_time),avg(target_response_time)'
+  metrics+=',max(total_response_time),max(target_response_time)'
+  metrics+=',avg(request_size),max(request_size)'
+  metrics+=',avg(response_size),max(response_size)'
+  metrics+=',sum(is_error),sum(target_error)'
+  arguments+=(--data-urlencode "select=$metrics")
+  arguments+=(--data-urlencode "sortby=$metrics")
   arguments+=(--data-urlencode "$(date --date 'yesterday' '+timeRange=%m/%d/%Y %H:%M:%S~')$(date '+%m/%d/%Y %H:%M:%S')")
   arguments+=(--data-urlencode 'timeUnit=hour')
   #  arguments+=(--data-urlencode 'topk=5')
   makeCurl "${arguments[@]}"
   jq '.' "$TEMP" >"$report_dir/$file.json" &&
     status "$CURL_RESULT report overall daily proxies see $report_dir/$file.json"
-  title='Timestamp,Organization,Environment,Api Proxy,Response Status Code'
+  title='Timestamp,Organization,Environment,Api Proxy'
+  title+=',Response Status Code,Subscription Key,Client IP'
   title+=',Basepath Endpoint,Request Verb,Total Traffic'
   title+=',AVG Proxy Response Time,AVG Target Response Time,AVG Total Response Time'
   title+=',MAX Proxy Response Time,MAX Target Response Time,MAX Total Response Time'
+  title+=',AVG Request Size,MAX Request Size'
   title+=',AVG Response Size,MAX Response Size'
   title+=',Proxy Error,Target Error,Total Error'
   echo "$title" >>"$report_dir/$file.csv"
@@ -230,6 +238,8 @@ function overallDataProxies() {
   query+=' | $metric | map(select(.name=="avg(target_response_time)").values[].value)  as $avg_target_response_time'
   query+=' | $metric | map(select(.name=="max(total_response_time)").values[].value)  as $max_total_response_time'
   query+=' | $metric | map(select(.name=="max(target_response_time)").values[].value)  as $max_target_response_time'
+  query+=' | $metric | map(select(.name=="avg(request_size)").values[].value)  as $avg_request_size'
+  query+=' | $metric | map(select(.name=="max(request_size)").values[].value)  as $max_request_size'
   query+=' | $metric | map(select(.name=="avg(response_size)").values[].value)  as $avg_response_size'
   query+=' | $metric | map(select(.name=="max(response_size)").values[].value)  as $max_response_size'
   query+=' | $metric | map(select(.name=="sum(is_error)").values[].value)  as $total_error'
@@ -241,6 +251,8 @@ function overallDataProxies() {
   query+=', environment:$environment.name'
   query+=', apiproxy:($dimension.name | split(",") | .[0])'
   query+=', status_code:($dimension.name | split(",") | .[1])'
+  query+=', subscription_key:($dimension.name | split(",") | .[5])'
+  query+=', client_ip:($dimension.name | split(",") | .[6])'
   query+=', basepath_endpoint:(($dimension.name | split(",") | .[2])+($dimension.name | split(",") | .[3]))'
   query+=', request_verb:($dimension.name | split(",") | .[4])'
   query+=', total_traffic:($total_traffic[.key] | tonumber | round)'
@@ -250,12 +262,15 @@ function overallDataProxies() {
   query+=', max_proxy_response_time:(($max_total_response_time[.key] | tonumber)-($max_target_response_time[.key] | tonumber) | round)'
   query+=', max_target_response_time:($max_target_response_time[.key] | tonumber | round)'
   query+=', max_total_response_time:($max_total_response_time[.key] | tonumber | round)'
+  query+=', avg_request_size:($avg_request_size[.key] | tonumber | round)'
+  query+=', max_request_size:($max_request_size[.key] | tonumber | round)'
   query+=', avg_response_size:($avg_response_size[.key] | tonumber | round)'
   query+=', max_response_size:($max_response_size[.key] | tonumber | round)'
   query+=', proxy_error:(($total_error[.key] | tonumber)-($target_error[.key] | tonumber) | round)'
   query+=', target_error:($target_error[.key] | tonumber | round)'
   query+=', total_error:($total_error[.key] | tonumber | round)'
   query+='}) | map(select(.total_traffic > 0))[]]'
-  query+=' | map(to_entries | map(.value) | @csv)[]'
+  query+=' | sort_by(.apiproxy,.status_code) | map(to_entries | map(.value) | @csv)[]'
   jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
+
