@@ -267,10 +267,12 @@ function overallDataProxies() {
   query+=', max_request_size:(if $traffic == "No Requests Made" then "No Requests Made" else ($max_request_size[.key] | tonumber | round) end)'
   query+=', avg_response_size:(if $traffic == "No Requests Made" then "No Requests Made" else ($avg_response_size[.key] | tonumber | round) end)'
   query+=', max_response_size:(if $traffic == "No Requests Made" then "No Requests Made" else ($max_response_size[.key] | tonumber | round) end)'
-  query+=', proxy_error:(if $traffic == "No Requests Made" then "No Requests Made" else (($total_error[.key] | tonumber)-($target_error[.key] | tonumber) | round) end)'
-  query+=', target_error:(if $traffic == "No Requests Made" then "No Requests Made" else ($target_error[.key] | tonumber | round) end)'
-  query+=', total_error:(if $traffic == "No Requests Made" then "No Requests Made" else ($total_error[.key] | tonumber | round) end)'
-  query+='})[]]'
+  query+=', proxy_error:(if $traffic == "No Requests Made" then "No Requests Made" else (if ($dimension.name | split(",") | .[1] | tonumber) < 400 then "No Errors Found" else (($total_error[.key] | tonumber)-($target_error[.key] | tonumber) | round) end) end)'
+  query+=', target_error:(if $traffic == "No Requests Made" then "No Requests Made" else (if ($dimension.name | split(",") | .[1] | tonumber) < 400 then "No Errors Found" else ($target_error[.key] | tonumber | round) end) end)'
+  query+=', total_error:(if $traffic == "No Requests Made" then "No Requests Made" else (if ($dimension.name | split(",") | .[1] | tonumber) < 400 then "No Errors Found" else ($total_error[.key] | tonumber | round) end) end)'
+  query+='})'
+#  query+=' | map(select(.total_traffic!="No Requests Made"))'
+  query+='[]]'
   query+=' | sort_by(.apiproxy,.status_code) | map(to_entries | map(.value) | @csv)[]'
   jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
