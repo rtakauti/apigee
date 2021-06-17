@@ -218,7 +218,7 @@ function overallDataProxies() {
   arguments+=(--data-urlencode "sortby=$metrics")
   arguments+=(--data-urlencode "$(date --date 'yesterday' '+timeRange=%m/%d/%Y %H:%M:%S~')$(date '+%m/%d/%Y %H:%M:%S')")
   arguments+=(--data-urlencode 'timeUnit=hour')
-  #  arguments+=(--data-urlencode 'topk=5')
+#  arguments+=(--data-urlencode 'topk=5')
   makeCurl "${arguments[@]}"
   jq '.' "$TEMP" >"$report_dir/$file.json" &&
     status "$CURL_RESULT report overall daily proxies see $report_dir/$file.json"
@@ -276,4 +276,3 @@ function overallDataProxies() {
   query+=' | sort_by(.apiproxy,.status_code) | map(to_entries | map(.value) | @csv)[]'
   jq -r "$query" "$TEMP" | sed 's/\"//g' >>"$report_dir/$file.csv"
 }
-

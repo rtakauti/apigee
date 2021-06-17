@@ -27,7 +27,9 @@ function createResourceFile() {
   local name_resource
   local resource_dir
   local check
-  declare -A checksum=([3ffe49caefcb137c63880033891af35f]='.resourceFile[]')
+  declare -A checksum=(
+    [3ffe49caefcb137c63880033891af35f]='.resourceFile[]'
+  )
 
   if [[ -z "$type" ]] && { [[ "$CONTEXT" == 'organizations' ]] || [[ "$CONTEXT" == 'environments' ]]; }; then
     sub_uri="$1"
@@ -61,17 +63,22 @@ function createRevisions() {
   local URI
   local current_uri
   local copy_uri
+  local backup_dir
+  declare -a actions=(
+    revision
+    deployment
+    bundle
+    upload
+    policy
+    resource
+  )
 
   if [[ -z "$type" ]] && { [[ "$CONTEXT" == 'sharedflows' ]] || [[ "$CONTEXT" == 'apis' ]]; }; then
 
     function revision() {
-      local backup_dir
-
       makeCurl
-      backup_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG/revisions/$element"
-      mkdir -p "$backup_dir"
       jq '.' "$TEMP" >"$backup_dir/revision_${rev}.json"
-      status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/revisions/$element/revision_${rev}.json"
+      status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/revision_${rev}.json"
     }
 
     function bundle() {
@@ -99,14 +106,21 @@ function createRevisions() {
     }
 
     function deployment() {
-      local deployment_dir
+      local env_quantity
+      local name
 
       URI+="/deployments"
       makeCurl
-      deployment_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG/deployments/$element"
-      mkdir -p "$deployment_dir"
-      jq '.' "$TEMP" >"$deployment_dir/revision_${rev}.json"
-      status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/deployments/$element/revision_${rev}.json"
+      name='deploy_'
+      env_quantity=$(jq '.environment | length' "$TEMP")
+      if [[ $env_quantity != 0 ]]; then
+        env_quantity=$((env_quantity - 1))
+        for env in $(seq 0 "$env_quantity"); do
+          name+="$(jq ".environment[$env].name" "$TEMP" | sed 's/\"//g')_"
+        done
+        jq '.' "$TEMP" >"$backup_dir/$name${rev}.json"
+      fi
+      status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/deploy_${rev}.json"
     }
 
     function resource() {
@@ -115,23 +129,25 @@ function createRevisions() {
       local name
       local sub_uri
       local check
-      declare -A checksum=([3ffe49caefcb137c63880033891af35f]='.resourceFile[]')
+      declare -A checksum=(
+        [3ffe49caefcb137c63880033891af35f]='.resourceFile[]'
+      )
 
       URI+="/resourcefiles"
       sub_uri="$URI"
       makeCurl
       check=$(md5sum "$TEMP" | awk '{ print $1 }')
       [[ -n "${checksum[$check]}" ]] && return
-      resource_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG/resourcefiles"
-      mkdir -p "$resource_dir/$element/revision_${rev}"
+      resource_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG"
+      mkdir -p "$resource_dir/$element/resourcefiles/revision_${rev}"
       items=$(jq -c '.resourceFile[]' "$TEMP")
       for item in $items; do
         type=$(echo "$item" | jq '.type' | sed 's/\"//g')
         name=$(echo "$item" | jq '.name' | sed 's/\"//g')
         URI+="/$type/$name"
         makeCurl
-        cp "$TEMP" "$resource_dir/$element/revision_${rev}/$name"
-        status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/resourcefiles/$element/revision_${rev}/$name"
+        cp "$TEMP" "$resource_dir/$element/resourcefiles/revision_${rev}/$name"
+        status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/resourcefiles/revision_${rev}/$name"
         URI="$sub_uri"
       done
     }
@@ -141,20 +157,22 @@ function createRevisions() {
       local items
       local sub_uri
       local check
-      declare -A checksum=([6b75a2a98c1aedf4e31f430cc178207f]=1)
+      declare -A checksum=(
+        [6b75a2a98c1aedf4e31f430cc178207f]=1
+      )
 
       URI+="/policies"
       sub_uri="$URI"
       makeCurl
       check=$(md5sum "$TEMP" | awk '{ print $1 }')
       [[ -n "${checksum[$check]}" ]] && return
-      policy_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG/policies"
-      mkdir -p "$policy_dir/$element/revision_${rev}"
+      policy_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG"
+      mkdir -p "$policy_dir/$element/policies/revision_${rev}"
       items=$(jq '.[]' "$TEMP" | sed 's/\"//g')
       for item in $items; do
         URI+="/$item"
         makeCurl
-        jq '.' "$TEMP" >"$policy_dir/$element/revision_${rev}/$item.json"
+        jq '.' "$TEMP" >"$policy_dir/$element/policies/revision_${rev}/$item.json"
         status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/policies/$element/revision_${rev}/$item.json"
         URI="$sub_uri"
       done
@@ -162,31 +180,33 @@ function createRevisions() {
 
     function audit() {
       local URI
-      local audit_dir
       local check
-      declare -A checksum=([c03a0890b83c8fe0fc9606ba70f688cc]='.auditRecord[]')
+      declare -A checksum=(
+        [c03a0890b83c8fe0fc9606ba70f688cc]='.auditRecord[]'
+      )
 
       URI="audits/organizations/$ORG/$CONTEXT/$element?expand=true&startTime=1500000000000&endTime=1800000000000"
       makeCurl
       check=$(md5sum "$TEMP" | awk '{ print $1 }')
       [[ -n "${checksum[$check]}" ]] && return
-      audit_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG/$element"
-      mkdir -p "$audit_dir"
-      jq '[.auditRecord[] | . + {date: (.timeStamp / 1000 | strftime("%Y-%m-%d %H:%M:%S UTC"))}]' "$TEMP" >"$audit_dir/audits.json"
+      jq '[.auditRecord[] | . + {date: (.timeStamp / 1000 | strftime("%Y-%m-%d %H:%M:%S UTC"))}]' "$TEMP" >"$backup_dir/audits.json"
       status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/audit.json"
     }
 
     current_uri="$1"
     revisions=$(echo "$ELEMENT" | jq '.revision[]' | sed 's/\"//g')
     IFS=$'\n'
-#    for action in revision bundle upload resource policy deployment; do
+    backup_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG/$element"
+    mkdir -p "$backup_dir"
+    mv "$backup_dir.json" "$backup_dir/$element.json"
+    for action in "${actions[@]}"; do
       for revision in $revisions; do
         rev=$(printf "%06d" "$revision")
         copy_uri=${current_uri/item/$revision}
         URI="$copy_uri"
-#        $action
+        $action
       done
-#    done
+    done
     audit
   fi
 }
@@ -197,8 +217,8 @@ function makeBackupList() {
   local items
   local check
   declare -A checksum=(
-  [fa9497f5acccafcc3e6019657bdc5eb1]=1
-  [9340db01545709694e12c770b59efff5]=1
+    [fa9497f5acccafcc3e6019657bdc5eb1]=1
+    [9340db01545709694e12c770b59efff5]=1
   )
   unset LIST
 
