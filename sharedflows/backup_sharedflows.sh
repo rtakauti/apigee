@@ -14,15 +14,14 @@ for ORG in "${ORGS[@]}"; do
   header
   makeBackupList "organizations/$ORG/$CONTEXT"
   cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/LIST.json"
-#  makeBackupSub "organizations/$ORG/$CONTEXT/element"
+  makeBackupSub "organizations/$ORG/$CONTEXT/element"
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'deployments'
 
   source "$ROOT_DIR/environments.sh"
   for ENV in "${ENVS[@]}"; do
     makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element" 'deployments'
   done
-
-  copy
 done
+copy
 compress
 [[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

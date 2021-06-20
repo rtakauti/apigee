@@ -20,20 +20,35 @@ function environment() {
 }
 
 function api() {
-  local list
   local rev
   local api_dir
+  local query
+  local sub_query
+  local deploy
+  local env_quantity
+  local name
 
-  list=$(echo "$expanded" |
-    jq '[.environment[].aPIProxy[] as $proxy | $proxy | ($proxy.name)+"|"+.revision[].name] | unique | sort')
-  echo "$list" | jq '.[]' | sed 's/\"//g' |
+  name='deploy_'
+  query='[.environment[].aPIProxy[] as $proxy | $proxy'
+  query+=' | ($proxy.name)+"|"+.revision[].name] | unique | sort | .[]'
+  echo "$expanded" | jq "$query" | sed 's/\"//g' |
     while IFS= read -r elements; do
       IFS='|' read -ra element <<<"$elements"
       rev=$(printf "%06d" "${element[1]}")
-      api_dir="$ROOT_DIR/apis/backup/$DATE/$ORG/deployments/${element[0]}"
+      api_dir="$ROOT_DIR/apis/backup/$DATE/$ORG/${element[0]}"
       mkdir -p "$api_dir"
-      echo "$expanded" |
-        jq "[.environment[] as \$envs | \$envs.aPIProxy[]  | select (.name==\"${element[0]}\") | .revision[] | {\"aPIProxy\":\"${element[0]}\", \"revision\":\"${element[1]}\", \"environment\":(select (.name==\"${element[1]}\") | .name=\$envs.name), \"organization\":\"$ORG\"}] | unique | sort" >"$api_dir/revision_$rev.json"
+      sub_query='[.environment[] as $envs | $envs.aPIProxy[]'
+      sub_query+=" | select (.name==\"${element[0]}\") | .revision[] "
+      sub_query+=" | {\"aPIProxy\":\"${element[0]}\", \"revision\":\"${element[1]}\", \"environment\":(select (.name==\"${element[1]}\")"
+      sub_query+=" | .name=\$envs.name), \"organization\":\"$ORG\"}] | unique | sort"
+      deploy=$(echo "$expanded" | jq "$sub_query")
+      env_quantity=$(echo "$deploy" | jq 'length')
+      env_quantity=$((env_quantity - 1))
+      for index in $(seq 0 "$env_quantity"); do
+        name+="$(echo "$deploy" | jq ".[$index].environment.name" | sed 's/\"//g')_"
+      done
+      echo "$deploy" >"$api_dir/${name}$rev.json"
+      name='deploy_'
     done
 }
 

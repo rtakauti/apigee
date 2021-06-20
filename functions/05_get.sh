@@ -66,10 +66,10 @@ function createRevisions() {
   local backup_dir
   declare -a actions=(
     revision
-    deployment
     bundle
     upload
     policy
+    deployment
     resource
   )
 
@@ -105,22 +105,27 @@ function createRevisions() {
       fi
     }
 
+    #
+    # Implemented API deployments in deployments module
+    #
     function deployment() {
       local env_quantity
       local name
 
-      URI+="/deployments"
-      makeCurl
-      name='deploy_'
+      if [[ "$CONTEXT" != 'apis' ]]; then
+        URI+="/deployments"
+        makeCurl
+        name='deploy_'
       env_quantity=$(jq '.environment | length' "$TEMP")
       if [[ $env_quantity != 0 ]]; then
         env_quantity=$((env_quantity - 1))
         for env in $(seq 0 "$env_quantity"); do
           name+="$(jq ".environment[$env].name" "$TEMP" | sed 's/\"//g')_"
         done
-        jq '.' "$TEMP" >"$backup_dir/$name${rev}.json"
+          jq '.' "$TEMP" >"$backup_dir/$name${rev}.json"
+        fi
+        status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/deploy_${rev}.json"
       fi
-      status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/deploy_${rev}.json"
     }
 
     function resource() {
@@ -212,6 +217,7 @@ function createRevisions() {
 }
 
 function makeBackupList() {
+  local backup_dir
   local type
   local URI
   local items
@@ -276,6 +282,7 @@ function makeBackupSub() {
 }
 
 function makeBackupSubItem() {
+  local backup_dir
   local URI
   local pre_uri
   local current_uri
@@ -284,6 +291,7 @@ function makeBackupSubItem() {
   local detail
   local extension
   local check
+  local element
   declare -A checksum=(
     [00eccebe0939574546663ae329e41029]=1
     [45249e4154128f693760143690cf86f1]=1

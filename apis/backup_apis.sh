@@ -18,8 +18,7 @@ for ORG in "${ORGS[@]}"; do
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'deployments'
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'keyvaluemaps'
   makeBackupSubItem "organizations/$ORG/$CONTEXT/element/keyvaluemaps/item" 'keyvaluemaps'
-  #  makeBackupSubItem "organizations/$ORG/$CONTEXT/element/keyvaluemaps/item/keys" 'keyvaluemaps'
-  copy
+  makeBackupSubItem "organizations/$ORG/$CONTEXT/element/keyvaluemaps/item/keys" 'keyvaluemaps'
 
   source "$ROOT_DIR/environments.sh"
   for ENV in "${ENVS[@]}"; do
@@ -28,9 +27,8 @@ for ORG in "${ORGS[@]}"; do
     makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element" 'deployments'
     makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element/cachedlogs" 'categories'
     makeBackupSubItem "organizations/$ORG/environments/$ENV/$CONTEXT/element/cachedlogs/categories/item" 'categories'
-    copy
   done
-
 done
+copy
 compress
 [[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

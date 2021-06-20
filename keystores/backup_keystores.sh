@@ -11,7 +11,8 @@ for ORG in "${ORGS[@]}"; do
 
     makeDir
     header
-    makeBackupList "organizations/$ORG/environments/$ENV/$CONTEXT" 'list'
+    makeBackupList "organizations/$ORG/environments/$ENV/$CONTEXT"
+    cp "backup/$DATE/$ORG/$ENV/$CONTEXT.json" "backup/$DATE/$ORG/$ENV/LIST.json"
     makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element"
     makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element" 'aliases'
     makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element" 'certs'
@@ -20,9 +21,8 @@ for ORG in "${ORGS[@]}"; do
     makeBackupSubItem "organizations/$ORG/environments/$ENV/$CONTEXT/element/aliases/item/csr" 'aliases' 'csr'
     makeBackupSubItem "organizations/$ORG/environments/$ENV/$CONTEXT/element/certs/item" 'certs'
     makeBackupSubItem "organizations/$ORG/environments/$ENV/$CONTEXT/element/certs/item/export" 'certs' 'export'
-    copy
-
   done
 done
+copy
 compress
 [[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

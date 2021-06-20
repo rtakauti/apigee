@@ -11,7 +11,8 @@ for ORG in "${ORGS[@]}"; do
 
     makeDir
     header
-    makeBackupList "organizations/$ORG/environments/$ENV/$CONTEXT" 'list'
+    makeBackupList "organizations/$ORG/environments/$ENV/$CONTEXT"
+    cp "backup/$DATE/$ORG/$ENV/$CONTEXT.json" "backup/$DATE/$ORG/$ENV/LIST.json"
     makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element"
     copy
 
