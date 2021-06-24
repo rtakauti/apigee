@@ -13,8 +13,7 @@ for ORG in ${ORGS[*]}; do
   makeBackupSub "organizations/$ORG/$CONTEXT/element"
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'servers'
   rearrangeFolder
-  copy
-
 done
+copy
 compress
 [[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

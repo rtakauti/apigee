@@ -14,8 +14,7 @@ for ORG in ${ORGS[*]}; do
   makeBackupSub "organizations/$ORG/$CONTEXT/element"
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'developers'
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'apps'
-  copy
-
 done
+copy
 compress
-[[ "$GIT" == 'ON' ]] &&  bash "git_$CONTEXT.sh"
+[[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

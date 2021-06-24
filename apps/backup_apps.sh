@@ -30,7 +30,7 @@ for ORG in ${ORGS[*]}; do
   hide
   makeBackupList "organizations/$ORG/$CONTEXT"
   optimize
-  copy
 done
+copy
 compress
 [[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

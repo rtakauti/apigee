@@ -18,7 +18,6 @@ function optimize() {
   done
 }
 
-
 for ORG in ${ORGS[*]}; do
 
   makeDir
@@ -27,9 +26,7 @@ for ORG in ${ORGS[*]}; do
   makeBackupList "organizations/$ORG/$CONTEXT"
   optimize
   rearrangeFolder
-  copy
-
 done
+copy
 compress
-[[ "$GIT" == 'ON' ]] &&  bash "git_$CONTEXT.sh"
-
+[[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

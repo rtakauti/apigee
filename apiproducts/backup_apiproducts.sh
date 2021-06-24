@@ -13,8 +13,7 @@ for ORG in ${ORGS[*]}; do
   cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/_LIST.json"
   makeBackupSub "organizations/$ORG/$CONTEXT/element"
   makeBackupSub "organizations/$ORG/$CONTEXT/element" 'attributes'
-  copy
-
 done
+copy
 compress
-[[ "$GIT" == 'ON' ]] &&  bash "git_$CONTEXT.sh"
+[[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"
