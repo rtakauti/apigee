@@ -8,13 +8,13 @@ for ORG in ${ORGS[*]}; do
 
   makeDir
   header
-  makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'expand'
-  makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupSub "organizations/$ORG/$CONTEXT" 'status'
-  makeBackupSub "organizations/$ORG/$CONTEXT" 'list' 'developers'
-  makeBackupSub "organizations/$ORG/$CONTEXT" 'list' 'apps'
-  copy
-
+  makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'EXPANDED'
+  makeBackupList "organizations/$ORG/$CONTEXT"
+  cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/_LIST.json"
+  makeBackupSub "organizations/$ORG/$CONTEXT/element"
+  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'developers'
+  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'apps'
 done
+copy
 compress
-[[ "$GIT" == 'ON' ]] &&  bash "git_$CONTEXT.sh"
+[[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

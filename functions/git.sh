@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source "$ROOT_DIR/organizations.sh"
-
 function clone() {
   if [[ ! -d "$ROOT_DIR/git" ]]; then
     git clone "$REPO" "$ROOT_DIR/git"
@@ -44,6 +42,12 @@ function createBranch() {
   rm -f README.md
 }
 
+function pushAll() {
+    git gc --aggressive &>/dev/null
+    git push --all origin
+    git push -f origin --tags
+}
+
 function revision() {
   local context
   local error
@@ -62,15 +66,15 @@ function revision() {
     if [[ -d "$ROOT_DIR/revisions/$context/$ORG" ]]; then
       (
         cd "$ROOT_DIR/revisions/$context/$ORG" || return
-        for object in *; do
-          if [[ -d "$object" ]]; then
+        for element in *; do
+          if [[ -d "$element" ]]; then
             (
-              git_dir="$ROOT_DIR/git/revisions/$ORG/$context/$object"
+              git_dir="$ROOT_DIR/git/revisions/$ORG/$context/$element"
               mkdir -p "$git_dir"
-              cd "$ROOT_DIR/revisions/$context/$ORG/$object" || return
+              cd "$ROOT_DIR/revisions/$context/$ORG/$element" || return
               for zip in revision_*.zip; do
 
-                branch="revisions/$ORG/$context/$object"
+                branch="revisions/$ORG/$context/$element"
                 last=$(git show-branch --no-name "$branch" | sed 's/[^0-9]*//g')
                 revision=$(echo "$zip" | sed 's/[^0-9]*//g')
 
@@ -82,9 +86,9 @@ function revision() {
                   (
                     createBranch "$branch"
                     cd "$ROOT_DIR/git" || return
-                    7z x "$ROOT_DIR/revisions/$context/$ORG/$object/$zip" -aoa -o"$git_dir" >/dev/null
+                    7z x "$ROOT_DIR/revisions/$context/$ORG/$element/$zip" -aoa -o"$git_dir" >/dev/null
                     git add . &>/dev/null
-                    git commit -m "$object rev_$revision" &>/dev/null
+                    git commit -m "$element rev_$revision" &>/dev/null
                     rm -rf ./*
                     wait
                   )
@@ -124,16 +128,16 @@ function revisionZip() {
     if [[ -d "$ROOT_DIR/revisions/$context/$ORG" ]]; then
       (
         cd "$ROOT_DIR/revisions/$context/$ORG" || return
-        for object in *; do
-          if [[ -d "$object" ]]; then
+        for element in *; do
+          if [[ -d "$element" ]]; then
             (
               git_dir="$ROOT_DIR/git/zip/$ORG/$context"
               mkdir -p "$git_dir"
-              cp -rf "$ROOT_DIR/revisions/$context/$ORG/$object" "$git_dir"
-              branch="zip/$ORG/$context/$object"
+              cp -rf "$ROOT_DIR/revisions/$context/$ORG/$element" "$git_dir"
+              branch="zip/$ORG/$context/$element"
               createBranch "$branch"
               git add . &>/dev/null
-              git commit -m "$object $DATE" &>/dev/null
+              git commit -m "$element $DATE" &>/dev/null
               git push origin "$branch" &>/dev/null &
               git checkout 'backup/ZIP' &>/dev/null
               git merge "$branch" &>/dev/null
@@ -159,8 +163,8 @@ function revisionZip() {
 
 function json() {
   local context
-  local git_object
-  local backup_object
+  local git_element
+  local backup_element
   local branch
   local text
   local files
@@ -185,8 +189,8 @@ function json() {
 
       if [[ -f "$ROOT_DIR/$context/backup/$DATE/${context}_list.json" ]]; then
         branch="json/$context"
-        git_object="$ROOT_DIR/git/json/$context"
-        backup_object="$ROOT_DIR/$context/backup/$DATE"
+        git_element="$ROOT_DIR/git/json/$context"
+        backup_element="$ROOT_DIR/$context/backup/$DATE"
         files=$(jq '.[]' "$ROOT_DIR/$context/backup/$DATE/${context}_list.json" | sed 's/\"//g')
         if [[ "$context" == 'users' ]]; then
           files=$(jq '.user[].name' "$ROOT_DIR/$context/backup/$DATE/${context}_list.json" | sed 's/\"//g')
@@ -194,8 +198,8 @@ function json() {
         IFS=$'\n'
       elif [[ -f "$ROOT_DIR/$context/backup/$DATE/$ORG/${context}_list.json" ]]; then
         branch="json/$ORG/$context"
-        git_object="$ROOT_DIR/git/json/$ORG/$context"
-        backup_object="$ROOT_DIR/$context/backup/$DATE/$ORG"
+        git_element="$ROOT_DIR/git/json/$ORG/$context"
+        backup_element="$ROOT_DIR/$context/backup/$DATE/$ORG"
         files=$(jq '.[]' "$ROOT_DIR/$context/backup/$DATE/$ORG/${context}_list.json" | sed 's/\"//g')
         if [[ "$context" == 'apps' ]]; then
           files=$(jq '.app[].name' "$ROOT_DIR/$context/backup/$DATE/$ORG/${context}_jq.json" | sed 's/\"//g')
@@ -203,17 +207,17 @@ function json() {
         IFS=$'\n'
       elif [[ -f "$ROOT_DIR/$context/backup/$DATE/$ORG/$ENV/${context}_list.json" ]]; then
         branch="json/$ORG/$ENV/$context"
-        git_object="$ROOT_DIR/git/json/$ORG/$ENV/$context"
-        backup_object="$ROOT_DIR/$context/backup/$DATE/$ORG/$ENV"
+        git_element="$ROOT_DIR/git/json/$ORG/$ENV/$context"
+        backup_element="$ROOT_DIR/$context/backup/$DATE/$ORG/$ENV"
         files=$(jq '.[]' "$ROOT_DIR/$context/backup/$DATE/$ORG/$ENV/${context}_list.json" | sed 's/\"//g')
         IFS=$'\n'
       fi
 
       if [[ -n "$files" ]]; then
-        mkdir -p "$git_object"
+        mkdir -p "$git_element"
         createBranch "$branch"
         for file in $files; do
-          cp "$backup_object/$file".json "$git_object"
+          cp "$backup_element/$file".json "$git_element"
         done
         (
           cd "$ROOT_DIR/git" || return
@@ -259,7 +263,7 @@ TROCAR
 
 TEMP=$(mktemp)
 export TEMP
-export APIGEE=ENDERECO
+export URL=ENDERECO
 #    export USERNAME=**************
 #    export PASSWORD=**************
 export LOG=log_context.txt
@@ -325,14 +329,14 @@ EOF
 
       if [[ -f "$ROOT_DIR/$context/backup/$DATE/${context}.txt" ]]; then
         cp "$ROOT_DIR/$context/backup/$DATE/${context}.txt" "$ROOT_DIR/git/ssh/context.txt"
-        text='--insecure "$APIGEE/v1/context" \'
+        text='--insecure "$URL/v1/context" \'
       elif [[ -f "$ROOT_DIR/$context/backup/$DATE/$ORG/${context}.txt" ]]; then
         cp "$ROOT_DIR/$context/backup/$DATE/$ORG/${context}.txt" "$ROOT_DIR/git/ssh/context.txt"
-        text='--insecure "$APIGEE/v1/organizations/ORGANIZACAO/context" \'
+        text='--insecure "$URL/v1/organizations/ORGANIZACAO/context" \'
         org="_$ORG"
       elif [[ -f "$ROOT_DIR/$context/backup/$DATE/$ORG/$ENV/${context}.txt" ]]; then
         cp "$ROOT_DIR/$context/backup/$DATE/$ORG/$ENV/${context}.txt" "$ROOT_DIR/git/ssh/context.txt"
-        text='--insecure "$APIGEE/v1/organizations/ORGANIZACAO/environments/AMBIENTE/context" \'
+        text='--insecure "$URL/v1/organizations/ORGANIZACAO/environments/AMBIENTE/context" \'
         env="_$ENV"
       fi
 
@@ -343,7 +347,7 @@ EOF
         content1="${content//MUDAR/$text}"
         content="${content1//AMBIENTE/$ENV}"
         content1="${content//ORGANIZACAO/$ORG}"
-        content="${content1//ENDERECO/$APIGEE}"
+        content="${content1//ENDERECO/$URL}"
         echo "${content//context/$context}" >"$ROOT_DIR/git/ssh/create_$context$org$env.sh"
         rm "$ROOT_DIR/git/ssh/context.txt"
         unset text
