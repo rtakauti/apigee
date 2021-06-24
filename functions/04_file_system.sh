@@ -39,7 +39,7 @@ function rearrangeFolder() {
 
   backup_dir="backup/$DATE"
   [[ "$ORG" ]] && backup_dir+="/$ORG"
-  list="$backup_dir/LIST.json"
+  list="$backup_dir/_LIST.json"
   [[ ! -f "$list" ]] && return
   list=$(jq '.[]' "$list" | sed 's/\"//g')
   (

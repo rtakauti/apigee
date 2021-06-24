@@ -4,8 +4,8 @@ source ../env_var.sh
 source "$ROOT_DIR/functions.sh"
 
 function optimize() {
-  jq '[.user[].name]' "backup/$DATE/$CONTEXT.json" >"backup/$DATE/LIST.json"
-  cp "backup/$DATE/LIST.json" "backup/$DATE/$CONTEXT.json"
+  jq '[.user[].name]' "backup/$DATE/$CONTEXT.json" >"backup/$DATE/_LIST.json"
+  cp "backup/$DATE/_LIST.json" "backup/$DATE/$CONTEXT.json"
 }
 
 makeDir

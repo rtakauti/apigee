@@ -55,7 +55,7 @@ function api() {
 function optimize() {
   local expanded
 
-  expanded=$(cat <"backup/$DATE/$ORG/EXPANDED.json")
+  expanded=$(cat <"backup/$DATE/$ORG/_EXPANDED.json")
   environment
   api
 }

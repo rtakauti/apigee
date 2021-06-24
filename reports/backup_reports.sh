@@ -9,8 +9,8 @@ function optimize() {
   local quantity
   local context
 
-  expanded=$(cat <"backup/$DATE/$ORG/EXPANDED.json")
-  echo "$expanded" | jq '[.qualifier[].displayName]' >"backup/$DATE/$ORG/LIST.json"
+  expanded=$(cat <"backup/$DATE/$ORG/_EXPANDED.json")
+  echo "$expanded" | jq '[.qualifier[].displayName]' >"backup/$DATE/$ORG/_LIST.json"
   quantity=$(echo "$expanded" | jq '.qualifier | length')
   for index in $(seq 0 $((quantity - 1))); do
     context=$(echo "$expanded" | jq ".qualifier[$index]")

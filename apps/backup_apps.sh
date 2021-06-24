@@ -9,8 +9,8 @@ function optimize() {
   local quantity
   local context
 
-  expanded=$(cat <"backup/$DATE/$ORG/EXPANDED.json")
-  echo "$expanded" | jq '[.app[].name]' >"backup/$DATE/$ORG/LIST.json"
+  expanded=$(cat <"backup/$DATE/$ORG/_EXPANDED.json")
+  echo "$expanded" | jq '[.app[].name]' >"backup/$DATE/$ORG/_LIST.json"
   quantity=$(echo "$expanded" | jq '.app | length')
   for index in $(seq 0 $((quantity - 1))); do
     context=$(echo "$expanded" | jq ".app[$index]")
@@ -19,8 +19,8 @@ function optimize() {
 }
 
 function hide() {
-  jq '.app[].credentials[].consumerKey = "**********" | .app[].credentials[].consumerSecret = "**********"' "backup/$DATE/$ORG/EXPANDED.json" >"backup/$DATE/TEMP.json"
-  mv "backup/$DATE/TEMP.json" "backup/$DATE/$ORG/EXPANDED.json"
+  jq '.app[].credentials[].consumerKey = "**********" | .app[].credentials[].consumerSecret = "**********"' "backup/$DATE/$ORG/_EXPANDED.json" >"backup/$DATE/TEMP.json"
+  mv "backup/$DATE/TEMP.json" "backup/$DATE/$ORG/_EXPANDED.json"
 }
 
 for ORG in ${ORGS[*]}; do

@@ -16,7 +16,7 @@ function setFile() {
   file="$CONTEXT"
   [[ "$type" ]] && file+="_$type"
   [[ "$element" ]] && file="$element"
-  [[ "$type" == 'EXPANDED' ]] && file='EXPANDED'
+  [[ "$type" == 'EXPANDED' ]] && file='_EXPANDED'
 }
 
 function createResourceFile() {
@@ -116,12 +116,12 @@ function createRevisions() {
         URI+="/deployments"
         makeCurl
         name='deploy_'
-      env_quantity=$(jq '.environment | length' "$TEMP")
-      if [[ $env_quantity != 0 ]]; then
-        env_quantity=$((env_quantity - 1))
-        for env in $(seq 0 "$env_quantity"); do
-          name+="$(jq ".environment[$env].name" "$TEMP" | sed 's/\"//g')_"
-        done
+        env_quantity=$(jq '.environment | length' "$TEMP")
+        if [[ $env_quantity != 0 ]]; then
+          env_quantity=$((env_quantity - 1))
+          for env in $(seq 0 "$env_quantity"); do
+            name+="$(jq ".environment[$env].name" "$TEMP" | sed 's/\"//g')_"
+          done
           jq '.' "$TEMP" >"$backup_dir/$name${rev}.json"
         fi
         status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/deploy_${rev}.json"

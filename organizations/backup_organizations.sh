@@ -6,7 +6,7 @@ source "$ROOT_DIR/functions.sh"
 makeDir
 header
 makeBackupList "$CONTEXT"
-cp "backup/$DATE/$CONTEXT.json" "backup/$DATE/LIST.json"
+cp "backup/$DATE/$CONTEXT.json" "backup/$DATE/_LIST.json"
 makeBackupSub "$CONTEXT/element"
 makeBackupSub "$CONTEXT/element" 'deployments'
 makeBackupSub "$CONTEXT/element" 'pods'
