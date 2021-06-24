@@ -7,7 +7,7 @@ apps="$ROOT_DIR/recover/apps_keys"
 
 while IFS= read -r keys; do
   IFS=':' read -ra app <<<"$keys"
-    CONSUMER_KEY=$(curl --location --request POST --insecure "$APIGEE"/v1/organizations/"$ORG"/companies/"$COMPANY"/apps \
+    CONSUMER_KEY=$(curl --location --request POST --insecure "$URL"/v1/organizations/"$ORG"/companies/"$COMPANY"/apps \
         --user "$USERNAME:$PASSWORD" \
         --silent \
         --header 'Content-Type: application/json' \
@@ -17,7 +17,7 @@ while IFS= read -r keys; do
 
     app_uri=$(echo ${app[0]} | sed -e 's/ /%20/g')
 
-    CURL_RESULT=$(curl --location --request DELETE --insecure "$APIGEE"/v1/organizations/"$ORG"/companies/"$COMPANY"/apps/"$app_uri"/keys/"$CONSUMER_KEY" \
+    CURL_RESULT=$(curl --location --request DELETE --insecure "$URL"/v1/organizations/"$ORG"/companies/"$COMPANY"/apps/"$app_uri"/keys/"$CONSUMER_KEY" \
         --user "$USERNAME:$PASSWORD" \
         --silent \
         --write-out "%{http_code}" \
@@ -27,7 +27,7 @@ while IFS= read -r keys; do
 
     SUBSCRIPTION_KEY="${app[1]}"
 
-    CURL_RESULT=$(curl --location --request POST --insecure "$APIGEE"/v1/organizations/"$ORG"/companies/"$COMPANY"/apps/"$app_uri"/keys/create \
+    CURL_RESULT=$(curl --location --request POST --insecure "$URL"/v1/organizations/"$ORG"/companies/"$COMPANY"/apps/"$app_uri"/keys/create \
         --user "$USERNAME:$PASSWORD" \
         --silent \
         --write-out "%{http_code}" \

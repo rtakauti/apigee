@@ -8,11 +8,12 @@ for ORG in ${ORGS[*]}; do
 
   makeDir
   header
-  makeBackupList "organizations/$ORG/$CONTEXT" 'list'
-  makeBackupSub "organizations/$ORG/$CONTEXT"
-  makeBackupSub "organizations/$ORG/$CONTEXT" 'action' 'servers'
-  copy
-
+  makeBackupList "organizations/$ORG/$CONTEXT"
+  cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/_LIST.json"
+  makeBackupSub "organizations/$ORG/$CONTEXT/element"
+  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'servers'
+  rearrangeFolder
 done
+copy
 compress
 [[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"
