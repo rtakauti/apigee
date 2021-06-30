@@ -13,9 +13,9 @@ header
 makeBackupList "$CONTEXT"
 optimize
 makeBackupSub "$CONTEXT/element"
-makeBackupSub "$CONTEXT/element" 'apps'
-makeBackupSubItem "$CONTEXT/element/apps/item" 'apps'
-makeBackupSubItem "$CONTEXT/element/apps/item" 'apps' 'attributes'
+#makeBackupSub "$CONTEXT/element" 'apps'
+#makeBackupSubItem "$CONTEXT/element/apps/item" 'apps'
+#makeBackupSubItem "$CONTEXT/element/apps/item" 'apps' 'attributes'
 copy
 compress
 [[ "$GIT" == 'ON' ]] && bash "git_$CONTEXT.sh"

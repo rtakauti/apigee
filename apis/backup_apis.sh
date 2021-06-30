@@ -15,19 +15,19 @@ for ORG in "${ORGS[@]}"; do
   makeBackupList "organizations/$ORG/$CONTEXT"
   cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/_LIST.json"
   makeBackupSub "organizations/$ORG/$CONTEXT/element"
-  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'deployments'
-  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'keyvaluemaps'
-  makeBackupSubItem "organizations/$ORG/$CONTEXT/element/keyvaluemaps/item" 'keyvaluemaps'
-  makeBackupSubItem "organizations/$ORG/$CONTEXT/element/keyvaluemaps/item/keys" 'keyvaluemaps'
-
-  source "$ROOT_DIR/environments.sh"
-  for ENV in "${ENVS[@]}"; do
-    makeDir
-    header
-    makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element" 'deployments'
-    makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element/cachedlogs" 'categories'
-    makeBackupSubItem "organizations/$ORG/environments/$ENV/$CONTEXT/element/cachedlogs/categories/item" 'categories'
-  done
+#  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'deployments'
+#  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'keyvaluemaps'
+#  makeBackupSubItem "organizations/$ORG/$CONTEXT/element/keyvaluemaps/item" 'keyvaluemaps'
+#  makeBackupSubItem "organizations/$ORG/$CONTEXT/element/keyvaluemaps/item/keys" 'keyvaluemaps'
+#
+#  source "$ROOT_DIR/environments.sh"
+#  for ENV in "${ENVS[@]}"; do
+#    makeDir
+#    header
+#    makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element" 'deployments'
+#    makeBackupSub "organizations/$ORG/environments/$ENV/$CONTEXT/element/cachedlogs" 'categories'
+#    makeBackupSubItem "organizations/$ORG/environments/$ENV/$CONTEXT/element/cachedlogs/categories/item" 'categories'
+#  done
 done
 copy
 compress

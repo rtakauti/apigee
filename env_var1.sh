@@ -25,5 +25,6 @@ if [[ -z $DATE ]]; then
     DATE=$(date +"%Y-%m-%d_%H-%M-%S")
     export DATE
 fi
+export PERIOD
 export LIST
 export REPO="git@github.com:user/repository"

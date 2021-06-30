@@ -4,5 +4,5 @@ source env_var.sh
 source functions.sh
 
 setActivity
-clone
+setPeriod
 mass

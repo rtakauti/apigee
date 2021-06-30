@@ -1,14 +1,5 @@
 #!/usr/bin/env bash
 
-function clone() {
-  if [[ ! -d "$ROOT_DIR/git" ]]; then
-    git clone "$REPO" "$ROOT_DIR/git"
-    git config --global core.autolf true
-    git config --global core.safelf true
-    checkoutAll
-  fi
-}
-
 function checkoutAll() {
   (
     cd "$ROOT_DIR/git" || return
@@ -16,11 +7,20 @@ function checkoutAll() {
       grep -v '\->' |
       grep -v 'master' |
       while read -r remote; do
-        git branch --track "${remote#origin/}" "$remote"
+        git branch --track "${remote#origin/}" "$remote" &>/dev/null
       done
     git fetch --all &>/dev/null
     git pull --all &>/dev/null
   )
+}
+
+function clone() {
+  if [[ ! -d "$ROOT_DIR/git" ]]; then
+    git clone "$REPO" "$ROOT_DIR/git"
+    git config --global core.autolf true
+    git config --global core.safelf true
+  fi
+  checkoutAll
 }
 
 function createBranch() {
@@ -29,136 +29,140 @@ function createBranch() {
 
   branch=$1
   source='master'
-  if [[ "$2" ]]; then
-    source="$2"
-  fi
+  [[ -n "$2" ]] && source="$2"
   cd "$ROOT_DIR/git" || return
   git checkout "$branch" &>/dev/null
   error=$?
-  if [[ "$error" -ne 0 ]]; then
-    git checkout -b "$branch" "$source"
-    rm -f README.md
-  fi
-  rm -f README.md
+  [[ "$error" -ne 0 ]] && git checkout -b "$branch" "$source"
+  [[ "$source" == master ]] && rm -rf ./*
 }
 
 function pushAll() {
-    git gc --aggressive &>/dev/null
-    git push --all origin
-    git push -f origin --tags
+  cd "$ROOT_DIR/git" || return
+  git gc --aggressive &>/dev/null
+  git push --all origin
+  git push -f origin --tags
 }
 
 function revision() {
+  local org
   local context
-  local error
+  local element
   local last
   local revision
-  local git_dir
+  local rev
   local regex
   local branch
+  local git_dir
+  local backup_dir
+  local revision_dir
+  local policy_dir
 
   context=$1
   regex='^[0-9]{1,6}$'
   createBranch 'backup/ALL'
   createBranch 'backup/REVISION'
+  extractContextBackup
+  cd "$ROOT_DIR/git" || return
 
-  for ORG in "${ORGS[@]}"; do
-    if [[ -d "$ROOT_DIR/revisions/$context/$ORG" ]]; then
-      (
-        cd "$ROOT_DIR/revisions/$context/$ORG" || return
-        for element in *; do
-          if [[ -d "$element" ]]; then
-            (
-              git_dir="$ROOT_DIR/git/revisions/$ORG/$context/$element"
-              mkdir -p "$git_dir"
-              cd "$ROOT_DIR/revisions/$context/$ORG/$element" || return
-              for zip in revision_*.zip; do
-
-                branch="revisions/$ORG/$context/$element"
-                last=$(git show-branch --no-name "$branch" | sed 's/[^0-9]*//g')
-                revision=$(echo "$zip" | sed 's/[^0-9]*//g')
-
-                if ! [[ "$last" =~ $regex ]]; then
-                  last='000000'
-                fi
-
-                if [[ "$last" < "$revision" ]]; then
-                  (
-                    createBranch "$branch"
-                    cd "$ROOT_DIR/git" || return
-                    7z x "$ROOT_DIR/revisions/$context/$ORG/$element/$zip" -aoa -o"$git_dir" >/dev/null
-                    git add . &>/dev/null
-                    git commit -m "$element rev_$revision" &>/dev/null
-                    rm -rf ./*
-                    wait
-                  )
-                fi
-              done
-              cd "$ROOT_DIR/git" || return
-              git push origin "$branch" &>/dev/null
-              git checkout 'backup/REVISION'
-              git merge "$branch" &>/dev/null
-            )
-          fi
-        done
-      )
+  for org in "${ORGS[@]}"; do
+    backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$org"
+    revision_dir="$ROOT_DIR/revisions/$context/$org"
+    if [[ ! -d "$revision_dir" ]]; then
+      echo "$context/$org" folder does not exist
+      continue
     fi
+    for element in $(jq '.[]' "$backup_dir/$context".json | sed 's/\"//g'); do
+      if [[ ! -d "$revision_dir/$element" ]]; then
+        echo "$element" folder does not exist
+        continue
+      fi
+      branch="revisions/$org/$context/$element"
+      git_dir="$ROOT_DIR/git/$branch"
+      for revision in $(jq '.revision[]' "$backup_dir/$element/$element".json | sed 's/\"//g'); do
+        cd "$ROOT_DIR/git" || return
+        last=$(git show-branch --no-name "$branch" | sed 's/[^0-9]*//g')
+        rev=$(printf "%06d" "$revision")
+        if ! [[ "$last" =~ $regex ]]; then
+          last='000000'
+        fi
+        if [[ ! -f "$revision_dir/$element/revision_$rev".zip ]]; then
+          echo "revision_$rev".zip file does not exist
+          continue
+        fi
+        if [[ "$last" < "$rev" ]]; then
+          createBranch "$branch"
+          7z x "$revision_dir/$element/revision_$rev".zip -aoa -o"$git_dir" >/dev/null
+          policy_dir="$backup_dir/$element/policies"
+          if [[ -d "$policy_dir/revision_$rev" ]] && [[ -n "$(ls -A "$policy_dir/revision_$rev")" ]]; then
+            mkdir -p "$git_dir/policies"
+            cp "$policy_dir/revision_$rev/"*.json "$git_dir/policies/"
+          fi
+          git add . &>/dev/null
+          git commit -m "$element rev_$rev" &>/dev/null
+          rm -rf ./*
+        fi
+      done
+      cd "$ROOT_DIR/git" || return
+      [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
+      git checkout 'backup/REVISION'
+      git merge "$branch" &>/dev/null
+    done
   done
-  (
-    cd "$ROOT_DIR/git" || return
-    git checkout 'backup/ALL'
-    git merge 'backup/REVISION' &>/dev/null
-    git tag -f "revision_$DATE" &>/dev/null
-    git push -f origin --tags &>/dev/null
-    git push origin "backup/REVISION" &>/dev/null
-    git push origin "backup/ALL" &>/dev/null
-  )
+  cd "$ROOT_DIR/git" || return
+  git checkout 'backup/ALL'
+  git merge 'backup/REVISION' &>/dev/null
+  git tag -f "revision_$PERIOD" &>/dev/null
+  pushAll
+  rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
 }
 
 function revisionZip() {
+  local org
   local context
-  local git_dir
+  local element
   local branch
+  local git_dir
+  local revision_dir
 
   context=$1
   createBranch 'backup/ALL'
   createBranch 'backup/ZIP'
+  extractContextBackup
+  cd "$ROOT_DIR/git" || return
 
-  for ORG in "${ORGS[@]}"; do
-    if [[ -d "$ROOT_DIR/revisions/$context/$ORG" ]]; then
-      (
-        cd "$ROOT_DIR/revisions/$context/$ORG" || return
-        for element in *; do
-          if [[ -d "$element" ]]; then
-            (
-              git_dir="$ROOT_DIR/git/zip/$ORG/$context"
-              mkdir -p "$git_dir"
-              cp -rf "$ROOT_DIR/revisions/$context/$ORG/$element" "$git_dir"
-              branch="zip/$ORG/$context/$element"
-              createBranch "$branch"
-              git add . &>/dev/null
-              git commit -m "$element $DATE" &>/dev/null
-              git push origin "$branch" &>/dev/null &
-              git checkout 'backup/ZIP' &>/dev/null
-              git merge "$branch" &>/dev/null
-              rm -rf ./*
-              wait
-            )
-          fi
-        done
-      )
+  for org in "${ORGS[@]}"; do
+    backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$org"
+    revision_dir="$ROOT_DIR/revisions/$context/$org"
+    if [[ ! -d "$revision_dir" ]]; then
+      echo "$context/$org" folder does not exist
+      continue
     fi
+    for element in $(jq '.[]' "$backup_dir/$context".json | sed 's/\"//g'); do
+      if [[ ! -d "$revision_dir/$element" ]]; then
+        echo "$element" folder does not exist
+        continue
+      fi
+      branch="zip/$org/$context/$element"
+      git_dir="$ROOT_DIR/git/$branch"
+      createBranch "$branch"
+      mkdir -p "$git_dir"
+      cp "$revision_dir/$element/"*.zip "$git_dir"
+      cat "$backup_dir/$element/revisions.txt" >>"$git_dir/revisions.txt"
+      git add . &>/dev/null
+      git commit -m "$element $PERIOD" &>/dev/null
+      git checkout 'backup/ZIP'
+      git merge "$branch" &>/dev/null
+      rm -rf ./*
+    done
   done
-  (
-    cd "$ROOT_DIR/git" || return
-    git checkout 'backup/ALL' &>/dev/null
-    git merge 'backup/ZIP' &>/dev/null
-    git gc --aggressive &>/dev/null
-    git tag -f "zip_$DATE" &>/dev/null
-    git push -f origin --tags &>/dev/null
-    git push origin 'backup/ZIP' &>/dev/null
-    git push origin 'backup/ALL' &>/dev/null
-  )
+  cd "$ROOT_DIR/git" || return
+  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
+  git checkout 'backup/ALL'
+  git merge 'backup/ZIP' &>/dev/null
+  git tag -f "zip_$PERIOD" &>/dev/null
+  pushAll
+  rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
 }
 
 function json() {

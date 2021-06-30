@@ -59,18 +59,20 @@ function createResourceFile() {
 
 function createRevisions() {
   local revisions
+  local revision
   local rev
   local URI
   local current_uri
   local copy_uri
   local backup_dir
+  local action
   declare -a actions=(
     revision
     bundle
     upload
-    policy
     deployment
-    resource
+    policy
+    #    resource
   )
 
   if [[ -z "$type" ]] && { [[ "$CONTEXT" == 'sharedflows' ]] || [[ "$CONTEXT" == 'apis' ]]; }; then
@@ -78,6 +80,7 @@ function createRevisions() {
     function revision() {
       makeCurl
       jq '.' "$TEMP" >"$backup_dir/revision_${rev}.json"
+      jq '.revision+"|"+.manifestVersion' "$TEMP" | sed 's/\"//g' >>"$backup_dir/revisions.txt"
       status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/revision_${rev}.json"
     }
 
@@ -111,6 +114,7 @@ function createRevisions() {
     function deployment() {
       local env_quantity
       local name
+      local env
 
       if [[ "$CONTEXT" != 'apis' ]]; then
         URI+="/deployments"
@@ -134,6 +138,8 @@ function createRevisions() {
       local name
       local sub_uri
       local check
+      local items
+      local item
       declare -A checksum=(
         [3ffe49caefcb137c63880033891af35f]='.resourceFile[]'
       )
@@ -162,6 +168,8 @@ function createRevisions() {
       local items
       local sub_uri
       local check
+      local items
+      local item
       declare -A checksum=(
         [6b75a2a98c1aedf4e31f430cc178207f]=1
       )
@@ -212,6 +220,9 @@ function createRevisions() {
         $action
       done
     done
+    #    truncate -s -1 "$backup_dir/revisions.txt"
+    #    jq -R -s -c 'split("\n")' "$backup_dir/revisions.json" >"$TEMP"
+    #    jq '.' "$TEMP" >"$backup_dir/revisions.json"
     audit
   fi
 }

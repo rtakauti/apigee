@@ -5,10 +5,8 @@ source "$ROOT_DIR/functions.sh"
 source "$ROOT_DIR/organizations.sh"
 
 for ORG in "${ORGS[@]}"; do
-
   source "$ROOT_DIR/environments.sh"
   for ENV in "${ENVS[@]}"; do
-
     makeDir
     header
     makeBackupList "organizations/$ORG/environments/$ENV/$CONTEXT"

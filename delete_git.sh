@@ -57,5 +57,4 @@ deleteLocalBranch
 deleteRemoteBranch
 deleteLocalTag
 deleteRemoteTag
-rm -rf "$ROOT_DIR/git"
-echo 'remove git folder'
+rm -rf "$ROOT_DIR/git" && echo 'GIT FOLDER REMOVED'
