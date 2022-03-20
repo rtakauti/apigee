@@ -2,4 +2,4 @@
 
 source ./swagger_functions.sh
 
-createBundle
+createBundle "$1"

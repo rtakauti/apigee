@@ -5,7 +5,9 @@ source ./env_var.sh
 function createBundle() {
   local title
   local new_name
+  local name
 
+  name="$1"
   (
     cd swaggers || exit
     for file in *.json; do
@@ -13,7 +15,7 @@ function createBundle() {
       jq --argjson title "$title" '.info.title=$title' "$file" >"$TEMP"
       cat "$TEMP" >"$file"
       title="${title//\"/}"
-      createMainXML "$file" "$title"
+      createMainXML "$file" "$title" "$name"
       new_name="${file// /-}"
       if [[ ! -f "$new_name" ]]; then
         mv "$file" "$new_name"
@@ -26,22 +28,23 @@ function createMainXML() {
   local file
   local title
   local description
-  declare -l basepath
+  local base_path
   local version
 
   file="$1"
   title="$2"
+  base_path="/$3"
   description=$(jq '.info.description' "$file" | sed 's/null//g' | sed 's/\"//g')
   version=$(jq '.info.version' "$file" | sed 's/null//g' | sed 's/\"//g')
-  basepath="/$ORG/$title/$version"
+#  basepath="/"$(echo "$2" | sed 's/\-/\//g')
   BUNDLE_DIR="$ROOT_DIR/bundles/$title/apiproxy"
   mkdir -p "$BUNDLE_DIR"
-  createProxyXML "$basepath"
+  createProxyXML "$base_path"
   createTargetXML
   cat <<EOF >"$BUNDLE_DIR/${title}.xml"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <APIProxy name="$title">
-    <Basepaths>$basepath</Basepaths>
+    <Basepaths>$base_path</Basepaths>
     <ConfigurationVersion majorVersion="4" minorVersion="0"/>
     <Description>$description</Description>
     <DisplayName>$title</DisplayName>
@@ -64,10 +67,10 @@ EOF
 }
 
 function createProxyXML() {
-  local basepath
+  local base_path
   local proxy_dir
 
-  basepath="$1"
+  base_path="$1"
   proxy_dir="$BUNDLE_DIR/proxies"
   mkdir -p "$proxy_dir"
   cat <<EOF >"$proxy_dir/default.xml"
@@ -86,7 +89,7 @@ function createProxyXML() {
   $(createPolicy 'RF-NotFound' 'Request' 'Flow')
   </Flows>
   <HTTPProxyConnection>
-    <BasePath>$basepath</BasePath>
+    <BasePath>$base_path</BasePath>
     <VirtualHost>default</VirtualHost>
   </HTTPProxyConnection>
   <RouteRule name="default">

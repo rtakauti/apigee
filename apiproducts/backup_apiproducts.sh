@@ -12,7 +12,7 @@ for ORG in ${ORGS[*]}; do
   makeBackupList "organizations/$ORG/$CONTEXT"
   cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/_LIST.json"
   makeBackupSub "organizations/$ORG/$CONTEXT/element"
-  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'attributes'
+#  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'attributes'
 done
 copy
 compress

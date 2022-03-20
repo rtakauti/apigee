@@ -59,17 +59,19 @@ function createResourceFile() {
 
 function createRevisions() {
   local revisions
+  local revision
   local rev
   local URI
   local current_uri
   local copy_uri
   local backup_dir
+  local action
   declare -a actions=(
     revision
+    deployment
     bundle
     upload
     policy
-    deployment
     resource
   )
 
@@ -78,6 +80,7 @@ function createRevisions() {
     function revision() {
       makeCurl
       jq '.' "$TEMP" >"$backup_dir/revision_${rev}.json"
+      jq '.revision+"|"+.manifestVersion' "$TEMP" | sed 's/\"//g' >>"$backup_dir/revisions.txt"
       status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/revision_${rev}.json"
     }
 
@@ -94,38 +97,79 @@ function createRevisions() {
 
     function upload() {
       local upload_dir
-      local revision_max
+      local file
 
-      revision_max=$(echo "${revisions[*]}" | sort -nr | head -n1)
-      if [[ $revision == "$revision_max" ]]; then
-        upload_dir="$ROOT_DIR/uploads/$CONTEXT/$ORG"
-        mkdir -p "$upload_dir"
-        cp "$TEMP" "$upload_dir/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
-        status "$CURL_RESULT backup ${CONTEXT^^} last revision done see uploads/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
-      fi
+      [[ $revision != $(echo "${revisions[*]}" | sort -nr | head -n1) ]] && return
+      upload_dir="$ROOT_DIR/uploads/$CONTEXT/$ORG"
+      mkdir -p "$upload_dir/$element"
+      cp "$TEMP" "$upload_dir/$element/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
+      (
+          cd "$upload_dir/$element" || return
+          7z x "${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip" >/dev/null
+
+            (
+                cd apiproxy || return
+                rm -rf manifests
+                for file in *.xml; do
+                    if [[ -f "$file" ]]; then
+                        sed -i '/Basepaths/d' "$file"
+                        sed -i '/ConfigurationVersion/d' "$file"
+                        sed -i '/CreatedAt/d' "$file"
+                        sed -i '/CreatedBy/d' "$file"
+                        sed -i '/Description/d' "$file"
+                        sed -i '/DisplayName/d' "$file"
+                        sed -i '/LastModifiedAt/d' "$file"
+                        sed -i '/LastModifiedBy/d' "$file"
+                        sed -i '/ManifestVersion/d' "$file"
+                    fi
+                done
+            )
+
+            7z a -r dev.zip apiproxy >/dev/null
+
+            (
+                cd apiproxy/targets || return
+                for file in *.xml; do
+                    if [[ -f "$file" ]]; then
+                        sed -i 's/-des./-hti./' "$file"
+                        sed -i 's/-dev./-hml./' "$file"
+                    fi
+                done
+            )
+
+            7z a -r hml.zip apiproxy >/dev/null
+
+            (
+                cd apiproxy/targets || return
+                for file in *.xml; do
+                    if [[ -f "$file" ]]; then
+                        sed -i 's/-hti./-prd./' "$file"
+                        sed -i 's/-hml./-prd./' "$file"
+                    fi
+                done
+            )
+
+            7z a -r prd.zip apiproxy >/dev/null
+            rm -rf apiproxy
+      )
+      status "$CURL_RESULT backup ${CONTEXT^^} last revision done see uploads/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
     }
 
-    #
-    # Implemented API deployments in deployments module
-    #
     function deployment() {
-      local env_quantity
+      local quantity
       local name
+      local env
 
-      if [[ "$CONTEXT" != 'apis' ]]; then
-        URI+="/deployments"
-        makeCurl
-        name='deploy_'
-        env_quantity=$(jq '.environment | length' "$TEMP")
-        if [[ $env_quantity != 0 ]]; then
-          env_quantity=$((env_quantity - 1))
-          for env in $(seq 0 "$env_quantity"); do
-            name+="$(jq ".environment[$env].name" "$TEMP" | sed 's/\"//g')_"
-          done
-          jq '.' "$TEMP" >"$backup_dir/$name${rev}.json"
-        fi
-        status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/deploy_${rev}.json"
-      fi
+      [[ "$CONTEXT" == 'apis' ]] && return
+      URI+="/deployments"
+      makeCurl
+      name='deploy_'
+      quantity=$(jq '.environment | length' "$TEMP")
+      [[ "$quantity" == 0 ]] && return
+      quantity=$((quantity - 1))
+      for env in $(seq 0 "$quantity"); do name+="$(jq ".environment[$env].name" "$TEMP" | sed 's/\"//g')_"; done
+      jq '.' "$TEMP" >"$backup_dir/$name${rev}.json"
+      status "$CURL_RESULT backup ${CONTEXT^^} done see backup/$DATE/$ORG/$element/deploy_${rev}.json"
     }
 
     function resource() {
@@ -134,6 +178,8 @@ function createRevisions() {
       local name
       local sub_uri
       local check
+      local items
+      local item
       declare -A checksum=(
         [3ffe49caefcb137c63880033891af35f]='.resourceFile[]'
       )
@@ -162,6 +208,8 @@ function createRevisions() {
       local items
       local sub_uri
       local check
+      local items
+      local item
       declare -A checksum=(
         [6b75a2a98c1aedf4e31f430cc178207f]=1
       )
@@ -212,6 +260,9 @@ function createRevisions() {
         $action
       done
     done
+    truncate -s -1 "$backup_dir/revisions.txt"
+    jq -R -s -c 'split("\n")' "$backup_dir/revisions.txt" | jq '.' >"$backup_dir/revisions.json"
+    rm "$backup_dir/revisions.txt"
     audit
   fi
 }

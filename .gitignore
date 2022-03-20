@@ -17,3 +17,5 @@ env_var.sh
 desktop.ini
 organizations.sh
 environments.sh
+apis/api_list.txt
+revisions_getnet/
