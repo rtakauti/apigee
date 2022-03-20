@@ -7,6 +7,7 @@ source "$ROOT_DIR/organizations.sh"
 function environment() {
   local quantity
   local environment
+  local index
 
   quantity=$(echo "$expanded" | jq '.environment | length')
   quantity=$((quantity - 1))
@@ -25,8 +26,9 @@ function api() {
   local query
   local sub_query
   local deploy
-  local env_quantity
+  local quantity
   local name
+  local index
 
   name='deploy_'
   query='[.environment[].aPIProxy[] as $proxy | $proxy'
@@ -42,9 +44,9 @@ function api() {
       sub_query+=" | {\"aPIProxy\":\"${element[0]}\", \"revision\":\"${element[1]}\", \"environment\":(select (.name==\"${element[1]}\")"
       sub_query+=" | .name=\$envs.name), \"organization\":\"$ORG\"}] | unique | sort"
       deploy=$(echo "$expanded" | jq "$sub_query")
-      env_quantity=$(echo "$deploy" | jq 'length')
-      env_quantity=$((env_quantity - 1))
-      for index in $(seq 0 "$env_quantity"); do
+      quantity=$(echo "$deploy" | jq 'length')
+      quantity=$((quantity - 1))
+      for index in $(seq 0 "$quantity"); do
         name+="$(echo "$deploy" | jq ".[$index].environment.name" | sed 's/\"//g')_"
       done
       echo "$deploy" >"$api_dir/${name}$rev.json"

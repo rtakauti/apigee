@@ -81,3 +81,18 @@ function compress() {
     rm -rf "$DATE"
   )
 }
+
+function setPeriod() {
+  cd "$ROOT_DIR/backup" || return
+  PERIOD=$(ls -t *.zip | head -1)
+  [[ -f 'list.txt' ]] && PERIOD=$(tail -n 1 'list.txt')
+}
+
+function extractContextBackup() {
+  cd "$ROOT_DIR/$CONTEXT/backup" || return
+  if [[ -z "$PERIOD" ]]; then
+    PERIOD=$(ls -t *.zip | head -1)
+    [[ -f 'list.txt' ]] && PERIOD=$(tail -n 1 'list.txt')
+  fi
+  7z x "${CONTEXT^^}_$PERIOD.zip" -aoa -o"$PERIOD" >/dev/null
+}
