@@ -71,6 +71,7 @@ function createRevisions() {
     deployment
     bundle
     upload
+    deployment
     policy
     resource
   )

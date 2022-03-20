@@ -7,6 +7,6 @@ source "$ROOT_DIR/organizations.sh"
 setContext
 clone
 #createSsh "$CONTEXT"
-json "$CONTEXT"
-#revision "$CONTEXT"
-#revisionZip "$CONTEXT"
+#json "$CONTEXT"
+revision "$CONTEXT"
+revisionZip "$CONTEXT"
