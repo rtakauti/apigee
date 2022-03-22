@@ -138,6 +138,7 @@ function revisionZip() {
       echo "$context/$org" folder does not exist
       continue
     fi
+
     for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
       if [[ ! -d "$revision_dir/$element" ]]; then
         echo "$element" folder does not exist

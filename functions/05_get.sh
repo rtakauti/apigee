@@ -111,19 +111,17 @@ function createRevisions() {
             (
                 cd apiproxy || return
                 rm -rf manifests
-                for file in *.xml; do
-                    if [[ -f "$file" ]]; then
-                        sed -i '/Basepaths/d' "$file"
-                        sed -i '/ConfigurationVersion/d' "$file"
-                        sed -i '/CreatedAt/d' "$file"
-                        sed -i '/CreatedBy/d' "$file"
-                        sed -i '/Description/d' "$file"
-                        sed -i '/DisplayName/d' "$file"
-                        sed -i '/LastModifiedAt/d' "$file"
-                        sed -i '/LastModifiedBy/d' "$file"
-                        sed -i '/ManifestVersion/d' "$file"
-                    fi
-                done
+                if [[ -f "${element}.xml" ]]; then
+                    sed -i '/Basepaths/d' "${element}.xml"
+                    sed -i '/ConfigurationVersion/d' "${element}.xml"
+                    sed -i '/CreatedAt/d' "${element}.xml"
+                    sed -i '/CreatedBy/d' "${element}.xml"
+                    sed -i '/Description/d' "${element}.xml"
+                    sed -i '/DisplayName/d' "${element}.xml"
+                    sed -i '/LastModifiedAt/d' "${element}.xml"
+                    sed -i '/LastModifiedBy/d' "${element}.xml"
+                    sed -i '/ManifestVersion/d' "${element}.xml"
+                fi
             )
 
             7z a -r dev.zip apiproxy >/dev/null
@@ -132,10 +130,17 @@ function createRevisions() {
                 cd apiproxy/targets || return
                 for file in *.xml; do
                     if [[ -f "$file" ]]; then
-                        sed -i 's/-des./-hti./' "$file"
-                        sed -i 's/-dev./-hml./' "$file"
+                        sed -i 's/-des./-hti./g' "$file"
+                        sed -i 's/-dev./-hml./g' "$file"
                     fi
                 done
+            )
+
+            (
+                cd apiproxy/policies || return
+                if [[ -f "AM-CORS.xml" ]]; then
+                    sed -i 's/-dev./-hti./g' "AM-CORS.xml"
+                fi
             )
 
             7z a -r hml.zip apiproxy >/dev/null
@@ -144,10 +149,17 @@ function createRevisions() {
                 cd apiproxy/targets || return
                 for file in *.xml; do
                     if [[ -f "$file" ]]; then
-                        sed -i 's/-hti./-prd./' "$file"
-                        sed -i 's/-hml./-prd./' "$file"
+                        sed -i 's/-hti./-prd./g' "$file"
+                        sed -i 's/-hml./-prd./g' "$file"
                     fi
                 done
+            )
+
+            (
+                cd apiproxy/policies || return
+                if [[ -f "AM-CORS.xml" ]]; then
+                    sed -i 's/-hti././g' "AM-CORS.xml"
+                fi
             )
 
             7z a -r prd.zip apiproxy >/dev/null

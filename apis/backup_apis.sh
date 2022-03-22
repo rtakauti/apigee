@@ -14,7 +14,7 @@ for ORG in "${ORGS[@]}"; do
   header
   makeBackupList "organizations/$ORG/$CONTEXT"
   cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/_LIST.json"
-  execution
+  createSShDeploy
   makeBackupSub "organizations/$ORG/$CONTEXT/element"
 #  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'deployments'
 #  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'keyvaluemaps'

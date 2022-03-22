@@ -56,7 +56,7 @@ function rearrangeFolder() {
   )
 }
 
-function execution(){
+function createSShDeploy(){
     local upload_dir
     local file_shell
 
@@ -81,13 +81,34 @@ declare -a apis=(
 #TROCAR
 )
 
+function create(){
+
+    if [[ -z "$api" ]] ; then
+        api="$1"
+    fi
+
+    curl -i -X POST "$URL/v1/organizations/#ORG/apis" \
+    --user "$USERNAME:$PASSWORD" \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "name": "'"$api"'"
+    }'
+}
+
 
 function upload(){
 
     if [[ -z "$api" ]] ; then
         api="$1"
         if [[ -d "$api" ]]; then
-            cd "$api" || exit
+            (
+                cd "$api" || exit
+                curl -i -X POST "$URL/v1/organizations/#ORG/apis?action=import&name=$api" \
+                --user "$USERNAME:$PASSWORD" \
+                --header 'Content-Type: application/octet-stream' \
+                -T "$PLANET.zip"
+            )
+            exit
         fi
     fi
 
