@@ -104,67 +104,8 @@ function createRevisions() {
       upload_dir="$ROOT_DIR/uploads/$CONTEXT/$ORG"
       mkdir -p "$upload_dir/$element"
       cp "$TEMP" "$upload_dir/$element/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
-      (
-          cd "$upload_dir/$element" || return
-          7z x "${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip" >/dev/null
-
-            (
-                cd apiproxy || return
-                rm -rf manifests
-                if [[ -f "${element}.xml" ]]; then
-                    sed -i '/Basepaths/d' "${element}.xml"
-                    sed -i '/ConfigurationVersion/d' "${element}.xml"
-                    sed -i '/CreatedAt/d' "${element}.xml"
-                    sed -i '/CreatedBy/d' "${element}.xml"
-                    sed -i '/Description/d' "${element}.xml"
-                    sed -i '/DisplayName/d' "${element}.xml"
-                    sed -i '/LastModifiedAt/d' "${element}.xml"
-                    sed -i '/LastModifiedBy/d' "${element}.xml"
-                    sed -i '/ManifestVersion/d' "${element}.xml"
-                fi
-            )
-
-            7z a -r dev.zip apiproxy >/dev/null
-
-            (
-                cd apiproxy/targets || return
-                for file in *.xml; do
-                    if [[ -f "$file" ]]; then
-                        sed -i 's/-des./-hti./g' "$file"
-                        sed -i 's/-dev./-hml./g' "$file"
-                    fi
-                done
-            )
-
-            (
-                cd apiproxy/policies || return
-                if [[ -f "AM-CORS.xml" ]]; then
-                    sed -i 's/-dev./-hti./g' "AM-CORS.xml"
-                fi
-            )
-
-            7z a -r hml.zip apiproxy >/dev/null
-
-            (
-                cd apiproxy/targets || return
-                for file in *.xml; do
-                    if [[ -f "$file" ]]; then
-                        sed -i 's/-hti./-prd./g' "$file"
-                        sed -i 's/-hml./-prd./g' "$file"
-                    fi
-                done
-            )
-
-            (
-                cd apiproxy/policies || return
-                if [[ -f "AM-CORS.xml" ]]; then
-                    sed -i 's/-hti././g' "AM-CORS.xml"
-                fi
-            )
-
-            7z a -r prd.zip apiproxy >/dev/null
-            rm -rf apiproxy
-      )
+      [[ "$CONTEXT" == "apis" ]] && transformApi
+      [[ "$CONTEXT" == "sharedflows" ]] && transformSharedflow
       status "$CURL_RESULT backup ${CONTEXT^^} last revision done see uploads/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
     }
 
