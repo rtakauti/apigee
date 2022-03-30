@@ -44,10 +44,6 @@ function createMainXML() {
   cat <<EOF >"$BUNDLE_DIR/${title}.xml"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <APIProxy name="$title">
-    <Basepaths>$base_path</Basepaths>
-    <ConfigurationVersion majorVersion="4" minorVersion="0"/>
-    <Description>$description</Description>
-    <DisplayName>$title</DisplayName>
     <Policies/>
     <ProxyEndpoints>
         <ProxyEndpoint>default</ProxyEndpoint>

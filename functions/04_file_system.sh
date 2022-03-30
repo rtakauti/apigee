@@ -56,7 +56,7 @@ function rearrangeFolder() {
   )
 }
 
-function execution(){
+function createSShDeploy(){
     local upload_dir
     local file_shell
 
@@ -81,35 +81,57 @@ declare -a apis=(
 #TROCAR
 )
 
+function create(){
+
+    if [[ -z "$api" ]] ; then
+        api="$1"
+    fi
+
+    curl --include --request POST "$URL/v1/organizations/#ORG/apis" \
+    --user "$USERNAME:$PASSWORD" \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "name": "'"$api"'"
+    }'
+}
+
 
 function upload(){
 
     if [[ -z "$api" ]] ; then
         api="$1"
         if [[ -d "$api" ]]; then
-            cd "$api" || exit
+            (
+                cd "$api" || exit
+                curl --include --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$api" \
+                --user "$USERNAME:$PASSWORD" \
+                --header 'Content-Type: application/octet-stream' \
+                --upload-file "$PLANET.zip"
+            )
+            exit
         fi
     fi
 
-    curl -i -X POST "$URL/v1/organizations/#ORG/apis?action=import&name=$api" \
+    curl --include --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$api" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/octet-stream' \
-    -T "$PLANET.zip"
+    --upload-file "$PLANET.zip"
 }
 
 function deploy(){
     local env
-    local rev
+    local revision
 
     env="$1"
     if [[ -z "$api" ]] ; then
-        api="$2"
+        api="$1"
+        env="$2"
     fi
 
-    rev=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$api/revisions" \
+    revision=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$api/revisions" \
     --user "$USERNAME:$PASSWORD") | jq .[] | sed 's/"//g' | sort -nr | head -n1)
 
-    curl -i -X POST "$URL/v1/organizations/#ORG/environments/$env/apis/$api/revisions/$rev/deployments?override=true" \
+    curl --include --request POST "$URL/v1/organizations/#ORG/environments/$env/apis/$api/revisions/$revision/deployments?override=true" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/x-www-form-urlencoded'
 }
@@ -120,28 +142,31 @@ function release(){
 
     env="$1"
     if [[ -z "$api" ]] ; then
-        api="$2"
+        api="$1"
+        env="$2"
     fi
 
-    upload "$api"
-    deploy "$env" "$api"
+    upload
+    deploy "$env"
 }
 
 
 function undeploy(){
     local env
     local revisions
+    local revision
 
     env="$1"
     if [[ -z "$api" ]] ; then
-        api="$2"
+        api="$1"
+        env="$2"
     fi
 
     revisions=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$api/revisions" \
     --user "$USERNAME:$PASSWORD") | jq '.[]' | sed 's/"//g')
 
     for revision in $revisions; do
-        curl --request DELETE "$URL/v1/organizations/#ORG/environments/$env/apis/$api/revisions/$revision/deployments" \
+        curl --include --request DELETE "$URL/v1/organizations/#ORG/environments/$env/apis/$api/revisions/$revision/deployments" \
         --user "$USERNAME:$PASSWORD"
     done
 
@@ -149,6 +174,7 @@ function undeploy(){
 
 function remove(){
     local environments
+    local environment
 
     if [[ -z "$api" ]] ; then
         api="$1"
@@ -161,7 +187,7 @@ function remove(){
         undeploy "$environment" "$api"
     done
 
-    curl --request DELETE "$URL/v1/organizations/#ORG/apis/$api" \
+    curl --include --request DELETE "$URL/v1/organizations/#ORG/apis/$api" \
     --user "$USERNAME:$PASSWORD"
 }
 

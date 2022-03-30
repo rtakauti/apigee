@@ -6,6 +6,8 @@ export jq='/c/jq-win64.exe'
 export zip='/c/7z.exe'
 TEMP=$(mktemp)
 export TEMP
+TEMPO=$(mktemp)
+export TEMPO
 export USERNAME=email
 export PASSWORD=password
 export ORG=eval

@@ -19,6 +19,12 @@ function clone() {
     git clone "$REPO" "$ROOT_DIR/git"
     git config --global core.autolf true
     git config --global core.safelf true
+    (
+        cd "$ROOT_DIR/git" || exit
+        touch "README.md"
+        git add .
+        git commit -m "Initial commit"
+    )
   fi
   checkoutAll
 }
@@ -40,13 +46,14 @@ function createBranch() {
 function pushAll() {
   cd "$ROOT_DIR/git" || return
   git gc --aggressive &>/dev/null
-  git push --all origin
+  git push --all --force origin
   git push -f origin --tags
 }
 
 function revision() {
   local org
   local context
+  local object
   local element
   local last
   local revision
@@ -59,6 +66,7 @@ function revision() {
   local policy_dir
 
   context=$1
+  object=$2
   regex='^[0-9]{1,6}$'
   createBranch 'backup/ALL'
   createBranch 'backup/REVISION'
@@ -73,6 +81,7 @@ function revision() {
       continue
     fi
     for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
+      [[ "$element" != *"$object"* ]] && continue
       if [[ ! -d "$revision_dir/$element" ]]; then
         echo "$element" folder does not exist
         continue
@@ -93,25 +102,25 @@ function revision() {
         if [[ "$last" < "$rev" ]]; then
           createBranch "$branch"
           7z x "$revision_dir/$element/revision_$rev".zip -aoa -o"$git_dir" >/dev/null
-          policy_dir="$backup_dir/$element/policies"
-          if [[ -d "$policy_dir/revision_$rev" ]] && [[ -n "$(ls -A "$policy_dir/revision_$rev")" ]]; then
-            mkdir -p "$git_dir/policies"
-            cp "$policy_dir/revision_$rev/"*.json "$git_dir/policies/"
-          fi
+#          policy_dir="$backup_dir/$element/policies"
+#          if [[ -d "$policy_dir/revision_$rev" ]] && [[ -n "$(ls -A "$policy_dir/revision_$rev")" ]]; then
+#            mkdir -p "$git_dir/policies"
+#            cp "$policy_dir/revision_$rev/"*.json "$git_dir/policies/"
+#          fi
           git add . &>/dev/null
           git commit -m "$element rev_$rev" &>/dev/null
           rm -rf ./*
         fi
       done
       cd "$ROOT_DIR/git" || return
-      [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
       git checkout 'backup/REVISION'
-      git merge "$branch" &>/dev/null
+      git rebase "$branch" &>/dev/null
     done
   done
   cd "$ROOT_DIR/git" || return
+  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
   git checkout 'backup/ALL'
-  git merge 'backup/REVISION' &>/dev/null
+  git rebase 'backup/REVISION' &>/dev/null
   git tag -f "revision_$PERIOD" &>/dev/null
   pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
@@ -120,12 +129,14 @@ function revision() {
 function revisionZip() {
   local org
   local context
+  local object
   local element
   local branch
   local git_dir
   local revision_dir
 
   context=$1
+  object=$2
   createBranch 'backup/ALL'
   createBranch 'backup/ZIP'
   extractContextBackup
@@ -138,7 +149,9 @@ function revisionZip() {
       echo "$context/$org" folder does not exist
       continue
     fi
+
     for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
+      [[ "$element" != *"$object"* ]] && continue
       if [[ ! -d "$revision_dir/$element" ]]; then
         echo "$element" folder does not exist
         continue
@@ -154,14 +167,14 @@ function revisionZip() {
       git add . &>/dev/null
       git commit -m "$element $PERIOD" &>/dev/null
       git checkout 'backup/ZIP'
-      git merge "$branch" &>/dev/null
+      git rebase "$branch" &>/dev/null
       rm -rf ./*
     done
   done
   cd "$ROOT_DIR/git" || return
   [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
   git checkout 'backup/ALL'
-  git merge 'backup/ZIP' &>/dev/null
+  git rebase 'backup/ZIP' &>/dev/null
   git tag -f "zip_$PERIOD" &>/dev/null
   pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD"

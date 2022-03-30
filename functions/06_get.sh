@@ -104,55 +104,8 @@ function createRevisions() {
       upload_dir="$ROOT_DIR/uploads/$CONTEXT/$ORG"
       mkdir -p "$upload_dir/$element"
       cp "$TEMP" "$upload_dir/$element/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
-      (
-          cd "$upload_dir/$element" || return
-          7z x "${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip" >/dev/null
-
-            (
-                cd apiproxy || return
-                rm -rf manifests
-                for file in *.xml; do
-                    if [[ -f "$file" ]]; then
-                        sed -i '/Basepaths/d' "$file"
-                        sed -i '/ConfigurationVersion/d' "$file"
-                        sed -i '/CreatedAt/d' "$file"
-                        sed -i '/CreatedBy/d' "$file"
-                        sed -i '/Description/d' "$file"
-                        sed -i '/DisplayName/d' "$file"
-                        sed -i '/LastModifiedAt/d' "$file"
-                        sed -i '/LastModifiedBy/d' "$file"
-                        sed -i '/ManifestVersion/d' "$file"
-                    fi
-                done
-            )
-
-            7z a -r dev.zip apiproxy >/dev/null
-
-            (
-                cd apiproxy/targets || return
-                for file in *.xml; do
-                    if [[ -f "$file" ]]; then
-                        sed -i 's/-des./-hti./' "$file"
-                        sed -i 's/-dev./-hml./' "$file"
-                    fi
-                done
-            )
-
-            7z a -r hml.zip apiproxy >/dev/null
-
-            (
-                cd apiproxy/targets || return
-                for file in *.xml; do
-                    if [[ -f "$file" ]]; then
-                        sed -i 's/-hti./-prd./' "$file"
-                        sed -i 's/-hml./-prd./' "$file"
-                    fi
-                done
-            )
-
-            7z a -r prd.zip apiproxy >/dev/null
-            rm -rf apiproxy
-      )
+      [[ "$CONTEXT" == "apis" ]] && transformApi
+      [[ "$CONTEXT" == "sharedflows" ]] && transformSharedflow
       status "$CURL_RESULT backup ${CONTEXT^^} last revision done see uploads/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
     }
 
