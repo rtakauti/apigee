@@ -81,7 +81,8 @@ function revision() {
       continue
     fi
     for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
-      if [[ ! -d "$revision_dir/$element" ]] || [[ "$element" != *"$object"* ]]; then
+      [[ "$element" != *"$object"* ]] && continue
+      if [[ ! -d "$revision_dir/$element" ]]; then
         echo "$element" folder does not exist
         continue
       fi
@@ -112,12 +113,12 @@ function revision() {
         fi
       done
       cd "$ROOT_DIR/git" || return
-      [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
       git checkout 'backup/REVISION'
       git rebase "$branch" &>/dev/null
     done
   done
   cd "$ROOT_DIR/git" || return
+  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
   git checkout 'backup/ALL'
   git rebase 'backup/REVISION' &>/dev/null
   git tag -f "revision_$PERIOD" &>/dev/null
@@ -150,7 +151,8 @@ function revisionZip() {
     fi
 
     for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
-      if [[ ! -d "$revision_dir/$element" ]] || [[ "$element" != *"$object"* ]]; then
+      [[ "$element" != *"$object"* ]] && continue
+      if [[ ! -d "$revision_dir/$element" ]]; then
         echo "$element" folder does not exist
         continue
       fi
@@ -165,14 +167,14 @@ function revisionZip() {
       git add . &>/dev/null
       git commit -m "$element $PERIOD" &>/dev/null
       git checkout 'backup/ZIP'
-      git merge "$branch" &>/dev/null
+      git rebase "$branch" &>/dev/null
       rm -rf ./*
     done
   done
   cd "$ROOT_DIR/git" || return
   [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
   git checkout 'backup/ALL'
-  git merge 'backup/ZIP' &>/dev/null
+  git rebase 'backup/ZIP' &>/dev/null
   git tag -f "zip_$PERIOD" &>/dev/null
   pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
