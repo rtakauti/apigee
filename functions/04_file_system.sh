@@ -15,7 +15,7 @@ function createInitializationFile() {
     read -r -d '' environments <<'EOF'
 #!/usr/bin/env bash
 
-#TROCAR
+#CHANGE
 
 export ENVS
 
@@ -27,7 +27,7 @@ EOF
       printf 'if [[ "$ORG" == '%s' ]]; then' "$ORG" >"$TEMP"
       printf "\nENVS=(%s)\n" "$(echo "$items" | jq -c '.[]' | sed ':a;N;$!ba;s/\n/ /g')" >>"$TEMP"
       printf "fi\n" >>"$TEMP"
-      echo "$environments" | sed $'/#TROCAR/{e cat $TEMP\n}' >"$ROOT_DIR/environments.sh"
+      echo "$environments" | sed $'/#CHANGE/{e cat $TEMP\n}' >"$ROOT_DIR/environments.sh"
       echo '#' "$elements" >>"$ROOT_DIR/environments.sh"
     fi
   fi
@@ -61,11 +61,11 @@ function createSShDeploy(){
     local file_shell
 
     upload_dir="$ROOT_DIR/uploads/$CONTEXT/$ORG"
-    file_shell="$upload_dir/${ORG}_apis.sh"
+    file_shell="$upload_dir/${ORG}_${CONTEXT}.sh"
 
     mkdir -p "$upload_dir"
     list=$(jq .[] "backup/$DATE/$ORG/$CONTEXT.json" | sed 's/"//g')
-    echo "$list" >"$upload_dir/${ORG}_apis.txt"
+    echo "$list" >"$upload_dir/${ORG}_${CONTEXT}.txt"
     printf "$list" >"$TEMPO"
 
     read -r -d '' deploy <<'EOF'
@@ -78,7 +78,7 @@ export URL=http://example.com
 export PLANET=dev
 
 declare -a apis=(
-#TROCAR
+#CHANGE
 )
 
 function create(){
@@ -211,7 +211,7 @@ function mass(){
 
 EOF
 
-    echo "$deploy" | sed $'/#TROCAR/{e cat $TEMPO\n}' >"$file_shell"
-    sed -i 's/#TROCAR//' "$file_shell"
+    echo "$deploy" | sed $'/#CHANGE/{e cat $TEMPO\n}' >"$file_shell"
+    sed -i 's/#CHANGE//' "$file_shell"
     sed -i 's/#ORG/'"$ORG"'/' "$file_shell"
 }

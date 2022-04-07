@@ -3,6 +3,7 @@
 source ../env_var.sh
 source "$ROOT_DIR/functions.sh"
 source "$ROOT_DIR/organizations.sh"
+obj="client-portal"
 
 setContext
 rm -rf "$ROOT_DIR/uploads/$CONTEXT"

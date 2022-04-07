@@ -104,8 +104,7 @@ function createRevisions() {
       upload_dir="$ROOT_DIR/uploads/$CONTEXT/$ORG"
       mkdir -p "$upload_dir/$element"
       cp "$TEMP" "$upload_dir/$element/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
-      [[ "$CONTEXT" == "apis" ]] && transformApi
-      [[ "$CONTEXT" == "sharedflows" ]] && transformSharedflow
+      transform
       status "$CURL_RESULT backup ${CONTEXT^^} last revision done see uploads/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
     }
 
@@ -254,6 +253,7 @@ function makeBackupSub() {
   local current_uri
   local element
   local check
+  local object
   declare -A checksum=(
     [fa9497f5acccafcc3e6019657bdc5eb1]=1
     [e44aaaf3aa0096b0e143f86af459c63b]=1
@@ -263,6 +263,7 @@ function makeBackupSub() {
   )
   current_uri="$1"
   type="$2"
+  object="$obj"
 
   backup_dir="backup/$DATE"
   [[ "$ORG" ]] && backup_dir+="/$ORG"
@@ -270,6 +271,7 @@ function makeBackupSub() {
   [[ ! -f "$backup_dir/$CONTEXT.json" ]] && return
   LIST=$(cat <"$backup_dir/$CONTEXT.json")
   for element in $(echo "$LIST" | jq '.[]' | sed 's/\"//g'); do
+    [[ "$element" != *"$object"* ]] && continue
     URI=${current_uri/element/"$element"}
     [[ "$type" ]] && URI=$URI/$type
 

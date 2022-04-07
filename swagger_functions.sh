@@ -69,7 +69,7 @@ function createProxyXML() {
   base_path="$1"
   proxy_dir="$BUNDLE_DIR/proxies"
   mkdir -p "$proxy_dir"
-  cat <<EOF >"$proxy_dir/default.xml"
+  cat <<EOF >"$proxy_dir/main.xml"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ProxyEndpoint name="default">
   <PreFlow name="PreFlow">
@@ -114,7 +114,7 @@ function createTargetXML() {
   url=$(jq '.servers[0].url' "$file" | sed 's/null//g' | sed 's/\"//g')
   target_dir="$BUNDLE_DIR/targets"
   mkdir -p "$target_dir"
-  cat <<EOF >"$target_dir/default.xml"
+  cat <<EOF >"$target_dir/main.xml"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <TargetEndpoint name="default">
   <PreFlow name="PreFlow">
