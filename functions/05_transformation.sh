@@ -5,11 +5,44 @@ function transform(){
     [[ "$CONTEXT" == "sharedflows" ]] && transformSharedflow
 }
 
-function copyTransformation(){
-    local object
-    local folder
 
-    object="client-portal"; [[ "$element" == *"$object"* ]] && folder="$object"
+function removeTransformation(){
+    local file
+
+    (
+        cd "$bundle" || return
+        rm -rf manifests
+        rm "${element}.xml"
+        rm -rf resources
+        (
+            cd policies || return
+            for file in FC-*.xml; do [[ -f "$file" ]] && rm "$file"; done
+        )
+    )
+}
+
+
+function copyTransformation(){
+    local service
+    local folder="null"
+    declare -a services=(
+    -client-portal-
+    -backoffice-
+    motor-pix-v
+    conciliation-v
+    ctf-cloud-v
+    )
+    declare -A folders=(
+    ["${services[0]}"]="common"
+    ["${services[1]}"]="common"
+    ["${services[2]}"]="common"
+    ["${services[3]}"]="common"
+    ["${services[4]}"]="ctf-cloud"
+    )
+
+    for service in "${services[@]}"; do
+        [[ "$element" == *"$service"* ]] && folder="${folders["$service"]}"
+    done
     (
         cd "$ROOT_DIR/transformation/$folder" || return
         cp policies/*.xml "$upload_dir/$element/$bundle/policies/"
@@ -34,32 +67,20 @@ function transformApi(){
     local planet
     declare -A data=(
     ["hml","target"]='s/-des./-hti./g;s/-dev./-hml./g'
-    ["hml","CORS"]='s/-dev./-hti./g'
-    ["hml","LogELK"]='s/-dev./-hml./g'
+    ["hml","AM-CORS.xml"]='s/-dev./-hti./g'
+    ["hml","ML-LogELK.xml"]='s/-dev./-hml./g'
     ["prd","target"]='s/-hti./-prd./g;s/-hml./-prd./g'
-    ["prd","CORS"]='s/-hti././g'
-    ["prd","LogELK"]='s/-hml././g'
+    ["prd","AM-CORS.xml"]='s/-hti././g'
+    ["prd","ML-LogELK.xml"]='s/-hml././g'
     )
 
     bundle="apiproxy"
     (
         cd "$upload_dir/$element" || return
         7z x "${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip" >/dev/null
-        (
-            cd "$bundle" || return
-            rm -rf manifests
-            rm "${element}.xml"
-            rm -rf resources
-            (
-                cd policies || return
-                rm FC-*.xml
-            )
-        )
-
+        removeTransformation
         copyTransformation
-
         7z a -r dev.zip "$bundle" >/dev/null
-
         for planet in "hml" "prd"; do
             (
                 cd "$bundle/targets" || return
@@ -67,16 +88,14 @@ function transformApi(){
                     [[ -f "$file" ]] && sed -i "${data["$planet","target"]}" "$file"
                 done
             )
-
             (
                 cd "$bundle/policies" || return
-                file="AM-CORS.xml"; [[ -f "$file" ]] && sed -i "${data["$planet","CORS"]}" "$file"
-                file="ML-LogELK.xml"; [[ -f "$file" ]] && sed -i "${data["$planet","LogELK"]}" "$file"
+                for file in "AM-CORS.xml" "ML-LogELK.xml"; do
+                    [[ -f "$file" ]] && sed -i "${data["$planet","$file"]}" "$file"
+                done
             )
-
             7z a -r "${planet}.zip" "$bundle" >/dev/null
         done
-
         rm -rf "$bundle"
     )
 }
@@ -88,19 +107,15 @@ function transformSharedflow(){
     bundle="sharedflowbundle"
     (
         transformMain
-
         (
             cd "$bundle/policies" || return
             [[ -f "ML-LogELK.xml" ]] && sed -i 's/-dev./-hml./g' "ML-LogELK.xml"
         )
-
         7z a -r hml.zip "$bundle" >/dev/null
-
         (
             cd "$bundle/policies" || return
             [[ -f "ML-LogELK.xml" ]] && sed -i 's/-hml././g' "ML-LogELK.xml"
         )
-
         7z a -r prd.zip "$bundle" >/dev/null
         rm -rf "$bundle"
     )

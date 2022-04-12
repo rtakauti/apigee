@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<SpikeArrest async="false" continueOnError="false" enabled="true" name="SA-RateLimite">
-    <DisplayName>SA-RateLimite</DisplayName>
-    <Properties/>
-    <Rate>300ps</Rate>
-</SpikeArrest>

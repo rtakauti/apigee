@@ -91,26 +91,15 @@ function revision() {
       for revision in $(jq '.revision[]' "$backup_dir/$element/$element".json | sed 's/\"//g'); do
         cd "$ROOT_DIR/git" || return
         last=$(git show-branch --no-name "$branch" | sed 's/[^0-9]*//g')
+        last=${last: -6}
         rev=$(printf "%06d" "$revision")
-        if ! [[ "$last" =~ $regex ]]; then
-          last='000000'
-        fi
-        if [[ ! -f "$revision_dir/$element/revision_$rev".zip ]]; then
-          echo "revision_$rev".zip file does not exist
-          continue
-        fi
-        if [[ "$last" < "$rev" ]]; then
-          createBranch "$branch"
-          7z x "$revision_dir/$element/revision_$rev".zip -aoa -o"$git_dir" >/dev/null
-#          policy_dir="$backup_dir/$element/policies"
-#          if [[ -d "$policy_dir/revision_$rev" ]] && [[ -n "$(ls -A "$policy_dir/revision_$rev")" ]]; then
-#            mkdir -p "$git_dir/policies"
-#            cp "$policy_dir/revision_$rev/"*.json "$git_dir/policies/"
-#          fi
-          git add . &>/dev/null
-          git commit -m "$element rev_$rev" &>/dev/null
-          rm -rf ./*
-        fi
+        ! [[ "$last" =~ $regex ]] && last='000000'
+        [ "$last" -ge "$rev" ] || [[ ! -f "$revision_dir/$element/revision_$rev".zip ]] && continue
+        createBranch "$branch"
+        7z x "$revision_dir/$element/revision_$rev".zip -aoa -o"$git_dir" >/dev/null
+        git add . &>/dev/null
+        git commit -m "$element rev_$rev" &>/dev/null
+        rm -rf ./*
       done
       cd "$ROOT_DIR/git" || return
       git checkout 'backup/REVISION'
@@ -118,7 +107,7 @@ function revision() {
     done
   done
   cd "$ROOT_DIR/git" || return
-  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
+#  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
   git checkout 'backup/ALL'
   git rebase 'backup/REVISION' &>/dev/null
   git tag -f "revision_$PERIOD" &>/dev/null
@@ -162,17 +151,20 @@ function revisionZip() {
       mkdir -p "$git_dir"
       cp "$revision_dir/$element/"*.zip "$git_dir"
       [[ ! -f "$git_dir/revisions.csv" ]] && echo 'Revision,Hash' >"$git_dir/revisions.csv"
-      jq '.[]' "$backup_dir/$element/revisions.json" |
-        sed 's/\"//g' | sed 's/|/\,/g' >>"$git_dir/revisions.csv"
+      jq '.[]' "$backup_dir/$element/revisions.json" | sed 's/\"//g' | sed 's/|/\,/g' >>"$git_dir/revisions.csv"
       git add . &>/dev/null
       git commit -m "$element $PERIOD" &>/dev/null
+#      if [[ $(git status) != *'nothing to commit, working tree clean'* ]]; then
+#        git checkout -- .
+#        continue
+#      fi
       git checkout 'backup/ZIP'
       git rebase "$branch" &>/dev/null
       rm -rf ./*
     done
   done
   cd "$ROOT_DIR/git" || return
-  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
+#  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
   git checkout 'backup/ALL'
   git rebase 'backup/ZIP' &>/dev/null
   git tag -f "zip_$PERIOD" &>/dev/null

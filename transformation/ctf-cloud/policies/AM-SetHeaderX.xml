@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage async="false" continueOnError="false" enabled="true" name="AM-SetHeaderX">
+    <DisplayName>AM-SetHeaderX</DisplayName>
+    <Properties/>
+    <!-- x-trace-id -->
+    <AssignVariable>
+        <Name>x-trace-id</Name>
+        <Template>{createUuid()}</Template>
+    </AssignVariable>
+    <!-- x-true-client-ip -->
+    <AssignVariable>
+        <Name>x-true-client-ip</Name>
+        <Ref>request.header.truClientIp</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-true-client-ip</Name>
+        <Ref>request.header.REMOTE_ADDR</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-true-client-ip</Name>
+        <Ref>request.header.remote_addr</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-true-client-ip</Name>
+        <Ref>request.header.remote-addr</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-true-client-ip</Name>
+        <Ref>request.header.True-Client-Ip</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-true-client-ip</Name>
+        <Ref>request.header.X-Real-IP</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-true-client-ip</Name>
+        <Ref>request.header.true-client-ip</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <AssignVariable>
+            <Name>x-true-client-ip</Name>
+            <Ref>request.header.x-true-client-ip</Ref>
+        </AssignVariable>
+        <Name>x-true-client-ip</Name>
+        <Template>{firstnonnull(x-true-client-ip,request.header.x-forwarded-for.1)}</Template>
+    </AssignVariable>
+    <!-- x-forwarded-for-->
+    <AssignVariable>
+        <Name>x-forwarded-for</Name>
+        <Ref>request.header.xForwardedFor</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-forwarded-for</Name>
+        <Ref>request.header.X_FORWARDED_FOR</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-forwarded-for</Name>
+        <Ref>request.header.x_forwarded_for</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-forwarded-for</Name>
+        <Ref>request.header.X-Forwarded-For</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-forwarded-for</Name>
+        <Ref>request.header.x-forwarded-for</Ref>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>x-forwarded-for</Name>
+        <Template>{firstnonnull(x-forwarded-for,proxy.client.ip)}</Template>
+    </AssignVariable>
+    <Add>
+        <Headers>
+            <Header name="x-trace-id">{x-trace-id}</Header>
+            <Header name="trace-id">{x-trace-id}</Header>
+            <Header name="x-true-client-ip">{x-true-client-ip}</Header>
+            <Header name="true-client-ip">{x-true-client-ip}</Header>
+            <Header name="x-forwarded-for">{x-forwarded-for}</Header>
+        </Headers>
+    </Add>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="request"/>
+</AssignMessage>

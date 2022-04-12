@@ -67,10 +67,10 @@ function createRevisions() {
   local backup_dir
   local action
   declare -a actions=(
-    revision
-    deployment
     bundle
+    revision
     upload
+    deployment
     deployment
     policy
     resource
