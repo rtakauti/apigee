@@ -102,12 +102,14 @@ function revision() {
         rm -rf ./*
       done
       cd "$ROOT_DIR/git" || return
+#      [[ $(git status) != *'nothing to commit, working tree clean'* ]] && continue
       git checkout 'backup/REVISION'
       git rebase "$branch" &>/dev/null
     done
   done
   cd "$ROOT_DIR/git" || return
 #  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
+  git diff "$branch" "origin/$branch"
   git checkout 'backup/ALL'
   git rebase 'backup/REVISION' &>/dev/null
   git tag -f "revision_$PERIOD" &>/dev/null
@@ -134,37 +136,27 @@ function revisionZip() {
   for org in "${ORGS[@]}"; do
     backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$org"
     revision_dir="$ROOT_DIR/revisions/$context/$org"
-    if [[ ! -d "$revision_dir" ]]; then
-      echo "$context/$org" folder does not exist
-      continue
-    fi
-
+    [[ ! -d "$revision_dir" ]] && continue
     for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
-      [[ "$element" != *"$object"* ]] && continue
-      if [[ ! -d "$revision_dir/$element" ]]; then
-        echo "$element" folder does not exist
-        continue
-      fi
+      [[ "$element" != *"$object"* ]] || [[ ! -d "$revision_dir/$element" ]] && continue
       branch="zip/$org/$context/$element"
       git_dir="$ROOT_DIR/git/$branch"
       createBranch "$branch"
-      mkdir -p "$git_dir"
+      [[ ! -d "$git_dir" ]] && mkdir -p "$git_dir"
       cp "$revision_dir/$element/"*.zip "$git_dir"
       [[ ! -f "$git_dir/revisions.csv" ]] && echo 'Revision,Hash' >"$git_dir/revisions.csv"
       jq '.[]' "$backup_dir/$element/revisions.json" | sed 's/\"//g' | sed 's/|/\,/g' >>"$git_dir/revisions.csv"
-      git add . &>/dev/null
-      git commit -m "$element $PERIOD" &>/dev/null
-#      if [[ $(git status) != *'nothing to commit, working tree clean'* ]]; then
-#        git checkout -- .
-#        continue
-#      fi
-      git checkout 'backup/ZIP'
-      git rebase "$branch" &>/dev/null
+      if [[ $(git status) != *'nothing to commit, working tree clean'* ]]; then
+          git add . &>/dev/null
+          git commit -m "$element $PERIOD" &>/dev/null
+          git checkout 'backup/ZIP'
+          git rebase "$branch" &>/dev/null
+      fi
       rm -rf ./*
     done
   done
   cd "$ROOT_DIR/git" || return
-#  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
+  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
   git checkout 'backup/ALL'
   git rebase 'backup/ZIP' &>/dev/null
   git tag -f "zip_$PERIOD" &>/dev/null
@@ -201,7 +193,7 @@ function json() {
     git commit -m "$message $PERIOD" &>/dev/null
     rm -rf ./*
     git checkout 'backup/JSON' &>/dev/null
-    git merge "$branch" &>/dev/null
+    git rebase "$branch" &>/dev/null
   }
 
   if [[ -f "$ROOT_DIR/$context/backup/$PERIOD"/_LIST.json ]]; then
@@ -236,9 +228,9 @@ function json() {
   cd "$ROOT_DIR/git" || return
   [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
   git checkout 'backup/ALL' &>/dev/null
-  git merge 'backup/JSON' &>/dev/null
+  git rebase 'backup/JSON' &>/dev/null
   git tag -f "json_$PERIOD" &>/dev/null
-  pushAll
+#  pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
 }
 
@@ -353,9 +345,9 @@ EOF
         git add . &>/dev/null
         git commit -m "Recover $context $DATE" &>/dev/null
         git checkout 'backup/ALL' &>/dev/null
-        git merge 'ssh/files' &>/dev/null
+        git rebase 'ssh/files' &>/dev/null
         git checkout 'backup/SSH' &>/dev/null
-        git merge 'ssh/files' &>/dev/null
+        git rebase 'ssh/files' &>/dev/null
         git branch -D 'ssh/files' &>/dev/null
       fi
     done
@@ -394,7 +386,7 @@ EOF
   git add . &>/dev/null
   git commit -m "RECOVER $DATE" &>/dev/null
   git checkout 'backup/ALL' &>/dev/null
-  git merge 'backup/SSH' &>/dev/null
+  git rebase 'backup/SSH' &>/dev/null
   git gc --aggressive &>/dev/null
   git tag -f "ssh_$DATE" &>/dev/null
   git push -f origin --tags &>/dev/null
