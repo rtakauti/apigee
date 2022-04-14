@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MessageLogging async="false" continueOnError="false" enabled="true" name="ML-LogELK">
+    <DisplayName>ML-LogELK</DisplayName>
+    <Syslog>
+        <Message>[3f509b58 tag="{organization.name}.{apiproxy.name}.{environment.name}"] verb={request.verb}; trace={x-trace-id}; latencytarget={log.latency.target}; latencytotal={log.latency.request.total}; req={request.content}; res={message.content}; status={message.status.code}</Message>
+        <Host>logstash-dev.getnet.com.br</Host>
+        <Port>5044</Port>
+        <Protocol>UDP</Protocol>
+        <FormatMessage>true</FormatMessage>
+    </Syslog>
+    <logLevel>INFO</logLevel>
+</MessageLogging>
