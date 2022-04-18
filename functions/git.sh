@@ -26,7 +26,7 @@ function clone() {
         git commit -m "Initial commit"
         rm "README.md"
         git add .
-        git commit -m "rev_000000"
+        git commit -m "Initial rev_000000"
     )
   fi
   checkoutAll
@@ -43,7 +43,7 @@ function createBranch() {
   git checkout "$branch" &>/dev/null
   error=$?
   [[ "$error" -ne 0 ]] && git checkout -b "$branch" "$source"
-  [[ "$source" == master ]] && rm -rf ./*
+#  [[ "$source" == master ]] && rm -rf ./*
 }
 
 function pushAll() {
@@ -71,12 +71,10 @@ function revision() {
   context=$1
   object=$2
   regex='^[0-9]{1,6}$'
-  git checkout --orphan new master
-  git commit -m "rev_000000"
-  createBranch 'backup/ALL' 'new'
-  createBranch 'backup/REVISION' 'new'
+  createBranch 'new'
+  createBranch 'backup/REVISION'
+  createBranch 'backup/ALL'
   extractContextBackup
-  cd "$GIT_FOLDER" || return
 
   for org in "${ORGS[@]}"; do
     backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$org"
@@ -110,13 +108,12 @@ function revision() {
   git branch -D 'new'
   git commit -m "revision_$PERIOD"
   git checkout 'backup/REVISION'
-  git rebase --reapply-cherry-picks 'auxiliar' >/dev/null
+  git rebase --reapply-cherry-picks 'auxiliar' &>/dev/null
   git branch -D 'auxiliar'
-#  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
   git checkout 'backup/ALL'
   git rebase --reapply-cherry-picks 'backup/REVISION' >/dev/null
   git tag -f "revision_$PERIOD" &>/dev/null
-#  pushAll
+  pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
 }
 
@@ -131,10 +128,11 @@ function revisionZip() {
 
   context=$1
   object=$2
+  createBranch 'new'
   createBranch 'backup/ALL'
   createBranch 'backup/ZIP'
   extractContextBackup
-  cd "$GIT_FOLDER" || return
+#  cd "$GIT_FOLDER" || return
 
   for org in "${ORGS[@]}"; do
     backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$org"
@@ -147,21 +145,27 @@ function revisionZip() {
       createBranch "$branch"
       [[ ! -d "$git_dir" ]] && mkdir -p "$git_dir"
       cp "$revision_dir/$element/"*.zip "$git_dir"
-      [[ ! -f "$git_dir/revisions.csv" ]] && echo 'Revision,Hash' >"$git_dir/revisions.csv"
-      jq '.[]' "$backup_dir/$element/revisions.json" | sed 's/\"//g' | sed 's/|/\,/g' >>"$git_dir/revisions.csv"
+#      [[ ! -f "$git_dir/revisions.csv" ]] && echo 'Revision,Hash' >"$git_dir/revisions.csv"
+#      jq '.[]' "$backup_dir/$element/revisions.json" | sed 's/\"//g' | sed 's/|/\,/g' >>"$git_dir/revisions.csv"
       if [[ $(git status) != *'nothing to commit, working tree clean'* ]]; then
           git add . &>/dev/null
           git commit -m "$element $PERIOD" &>/dev/null
-          git checkout 'backup/ZIP'
+#          git checkout 'backup/ZIP'
+          git checkout 'new'
           git rebase "$branch" &>/dev/null
       fi
       rm -rf ./*
     done
   done
   cd "$GIT_FOLDER" || return
-  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
+  git checkout --orphan auxiliar new
+  git branch -D 'new'
+  git commit -m "revision_$PERIOD"
+  git checkout 'backup/ZIP'
+  git rebase --reapply-cherry-picks 'auxiliar' &>/dev/null
+  git branch -D 'auxiliar'
   git checkout 'backup/ALL'
-  git rebase 'backup/ZIP' &>/dev/null
+  git rebase --reapply-cherry-picks 'backup/ZIP' >/dev/null
   git tag -f "zip_$PERIOD" &>/dev/null
   pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
