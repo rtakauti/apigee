@@ -17,6 +17,7 @@ export URI
 declare -a ARGUMENTS
 export ARGUMENTS
 export ROOT_DIR=/c/users/user/apigee
+export GIT_FOLDER="$ROOT_DIR/../git"
 export URL=https://api.enterprise.apigee.com
 export COMPANY='Test'
 export DELETE='OFF'

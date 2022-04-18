@@ -68,12 +68,10 @@ function createRevisions() {
   local action
   declare -a actions=(
     bundle
-    revision
-    upload
-    deployment
-    deployment
-    policy
-    resource
+#    revision
+#    deployment
+#    policy
+#    resource
   )
 
   if [[ -z "$type" ]] && { [[ "$CONTEXT" == 'sharedflows' ]] || [[ "$CONTEXT" == 'apis' ]]; }; then
@@ -94,6 +92,7 @@ function createRevisions() {
       mkdir -p "$revision_dir"
       cp "$TEMP" "$revision_dir/revision_${rev}.zip"
       status "$CURL_RESULT backup ${CONTEXT^^} revision done see revisions/$element/revision_${rev}.zip"
+      upload
     }
 
     function upload() {
@@ -216,7 +215,7 @@ function createRevisions() {
     truncate -s -1 "$backup_dir/revisions.txt"
     jq -R -s -c 'split("\n")' "$backup_dir/revisions.txt" | jq '.' >"$backup_dir/revisions.json"
     rm "$backup_dir/revisions.txt"
-    audit
+#    audit
   fi
 }
 
