@@ -5,7 +5,7 @@ source functions.sh
 
 function deleteLocalBranch() {
   (
-    cd "$ROOT_DIR/git" || return
+    cd "$GIT_FOLDER" || return
     git checkout master
     git branch |
       grep -v '\*' |
@@ -19,7 +19,7 @@ function deleteLocalBranch() {
 
 function deleteRemoteBranch() {
   (
-    cd "$ROOT_DIR/git" || return
+    cd "$GIT_FOLDER" || return
     git branch -r |
       grep -v '\->' |
       grep -v 'master' |
@@ -32,7 +32,7 @@ function deleteRemoteBranch() {
 
 function deleteLocalTag() {
   (
-    cd "$ROOT_DIR/git" || return
+    cd "$GIT_FOLDER" || return
     git tag -l |
       while read -r tag; do
         git tag -d "$tag" &
@@ -43,7 +43,7 @@ function deleteLocalTag() {
 
 function deleteRemoteTag() {
   (
-    cd "$ROOT_DIR/git" || return
+    cd "$GIT_FOLDER" || return
     git ls-remote --tags origin |
       sed -n -e 's/^.*refs//p' |
       while read -r tag; do
@@ -57,4 +57,4 @@ deleteLocalBranch
 deleteRemoteBranch
 deleteLocalTag
 deleteRemoteTag
-rm -rf "$ROOT_DIR/git" && echo 'GIT FOLDER REMOVED'
+rm -rf "$GIT_FOLDER" && echo 'GIT FOLDER REMOVED'
