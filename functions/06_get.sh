@@ -65,11 +65,9 @@ function createRevisions() {
   local current_uri
   local copy_uri
   local backup_dir
-  local revision_dir
   local action
   declare -a actions=(
     bundle
-    upload
 #    revision
 #    deployment
 #    policy
@@ -86,14 +84,15 @@ function createRevisions() {
     }
 
     function bundle() {
-#      local revision_dir
+      local revision_dir
 
       URI+="?format=bundle"
       makeCurl
-#      revision_dir="$ROOT_DIR/revisions/$CONTEXT/$ORG/$element"
-      [[ ! -d "$revision_dir" ]] && mkdir -p "$revision_dir"
+      revision_dir="$ROOT_DIR/revisions/$CONTEXT/$ORG/$element"
+      mkdir -p "$revision_dir"
       cp "$TEMP" "$revision_dir/revision_${rev}.zip"
       status "$CURL_RESULT backup ${CONTEXT^^} revision done see revisions/$element/revision_${rev}.zip"
+      upload
     }
 
     function upload() {
@@ -203,17 +202,14 @@ function createRevisions() {
     revisions=$(echo "$ELEMENT" | jq '.revision[]' | sed 's/\"//g')
     IFS=$'\n'
     backup_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG/$element"
-    [[ ! -d "$backup_dir" ]] && mkdir -p "$backup_dir"
-    revision_dir="$ROOT_DIR/revisions/$CONTEXT/$ORG/$element"
+    mkdir -p "$backup_dir"
     mv "$backup_dir.json" "$backup_dir/$element.json"
     for action in "${actions[@]}"; do
       for revision in $revisions; do
         rev=$(printf "%06d" "$revision")
-        if [[ ! -f "$revision_dir/revision_${rev}.zip" ]]; then
-            copy_uri=${current_uri/item/$revision}
-            URI="$copy_uri"
-            $action
-        fi
+        copy_uri=${current_uri/item/$revision}
+        URI="$copy_uri"
+        $action
       done
     done
     truncate -s -1 "$backup_dir/revisions.txt"

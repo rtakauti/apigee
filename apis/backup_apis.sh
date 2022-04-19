@@ -3,11 +3,11 @@
 source ../env_var.sh
 source "$ROOT_DIR/functions.sh"
 source "$ROOT_DIR/organizations.sh"
-obj="motor-pix-v"
+obj=""
 
 setContext
-#rm -rf "$ROOT_DIR/uploads/$CONTEXT"
-#rm -rf "$ROOT_DIR/revisions/$CONTEXT"
+rm -rf "$ROOT_DIR/uploads/$CONTEXT"
+rm -rf "$ROOT_DIR/revisions/$CONTEXT"
 
 for ORG in "${ORGS[@]}"; do
 

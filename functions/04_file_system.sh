@@ -82,11 +82,7 @@ declare -a apis=(
 )
 
 function create(){
-
-    if [[ -z "$api" ]] ; then
-        api="$1"
-    fi
-
+    [[ -z "$api" ]] && api="$1"
     curl --include --request POST "$URL/v1/organizations/#ORG/apis" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/json' \
@@ -123,10 +119,7 @@ function deploy(){
     local revision
 
     env="$1"
-    if [[ -z "$api" ]] ; then
-        api="$1"
-        env="$2"
-    fi
+    [[ -z "$api" ]] && api="$1"; env="$2"
 
     revision=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$api/revisions" \
     --user "$USERNAME:$PASSWORD") | jq .[] | sed 's/"//g' | sort -nr | head -n1)
@@ -141,11 +134,7 @@ function release(){
     local env
 
     env="$1"
-    if [[ -z "$api" ]] ; then
-        api="$1"
-        env="$2"
-    fi
-
+    [[ -z "$api" ]] && api="$1"; env="$2"
     upload
     deploy "$env"
 }
@@ -157,10 +146,7 @@ function undeploy(){
     local revision
 
     env="$1"
-    if [[ -z "$api" ]] ; then
-        api="$1"
-        env="$2"
-    fi
+    [[ -z "$api" ]] && api="$1"; env="$2"
 
     revisions=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$api/revisions" \
     --user "$USERNAME:$PASSWORD") | jq '.[]' | sed 's/"//g')
@@ -172,23 +158,21 @@ function undeploy(){
 
 }
 
+function delete(){
+    [[ -z "$api" ]] && api="$1"
+    curl  --request DELETE "$URL/v1/organizations/#ORG/apis/$api" \
+    --user "$USERNAME:$PASSWORD"
+}
+
 function remove(){
     local environments
     local environment
 
-    if [[ -z "$api" ]] ; then
-        api="$1"
-    fi
-
+    [[ -z "$api" ]] && api="$1"
     environments=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/environments" \
     --user "$USERNAME:$PASSWORD") | jq '.[]' | sed 's/"//g')
-
-    for environment in $environments; do
-        undeploy "$environment" "$api"
-    done
-
-    curl --include --request DELETE "$URL/v1/organizations/#ORG/apis/$api" \
-    --user "$USERNAME:$PASSWORD"
+    for environment in $environments; do undeploy "$environment" "$api"; done
+    delete
 }
 
 
