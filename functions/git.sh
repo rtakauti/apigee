@@ -141,9 +141,9 @@ function revisionZip() {
       if [[ $(git status) != *'nothing to commit, working tree clean'* ]]; then
           git add . &>/dev/null
           git commit -m "$element $PERIOD" &>/dev/null
-          git checkout 'backup/ZIP'
-          git merge --squash "$branch" &>/dev/null
       fi
+      git checkout 'backup/ZIP'
+      git merge "$branch" &>/dev/null
       rm -rf ./*
     done
   done
