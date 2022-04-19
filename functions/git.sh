@@ -21,12 +21,7 @@ function clone() {
     git config --global core.safelf true
     (
         cd "$GIT_FOLDER" || exit
-        touch "README.md"
-        git add .
-        git commit -m "Initial commit"
-        rm "README.md"
-        git add .
-        git commit -m "Initial rev_000000"
+        git commit --allow-empty -m  "Initial rev_000000"
     )
   fi
   checkoutAll
@@ -71,13 +66,13 @@ function revision() {
   context=$1
   object=$2
   regex='^[0-9]{1,6}$'
-  createBranch 'new'
   createBranch 'backup/REVISION'
   createBranch 'backup/ALL'
   extractContextBackup
 
   for org in "${ORGS[@]}"; do
     backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$org"
+    total=$(jq '. | length' "$backup_dir/_LIST.json")
     revision_dir="$ROOT_DIR/revisions/$context/$org"
     [[ ! -d "$revision_dir" ]] && continue
     for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
@@ -98,20 +93,18 @@ function revision() {
         rm -rf ./*
       done
       cd "$GIT_FOLDER" || return
-#      [[ $(git status) != *'nothing to commit, working tree clean'* ]] && continue
-      git checkout 'new'
-      git merge "$branch" &>/dev/null
+      git checkout 'backup/REVISION'
+      git merge --squash "$branch" &>/dev/null
+      git add .
+      git commit -m "$element $PERIOD"
     done
   done
   cd "$GIT_FOLDER" || return
-  git checkout --orphan auxiliar new
-  git branch -D 'new'
-  git commit -m "revision_$PERIOD"
-  git checkout 'backup/REVISION'
-  git rebase --reapply-cherry-picks 'auxiliar' &>/dev/null
-  git branch -D 'auxiliar'
+  git checkout --orphan 'auxiliar' 'backup/REVISION'
+  git commit -m "REVISION $PERIOD"
   git checkout 'backup/ALL'
-  git rebase --reapply-cherry-picks 'backup/REVISION' >/dev/null
+  git rebase 'auxiliar'
+  git branch -D 'auxiliar'
   git tag -f "revision_$PERIOD" &>/dev/null
   pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
@@ -128,11 +121,9 @@ function revisionZip() {
 
   context=$1
   object=$2
-  createBranch 'new'
   createBranch 'backup/ALL'
   createBranch 'backup/ZIP'
   extractContextBackup
-#  cd "$GIT_FOLDER" || return
 
   for org in "${ORGS[@]}"; do
     backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$org"
@@ -150,22 +141,18 @@ function revisionZip() {
       if [[ $(git status) != *'nothing to commit, working tree clean'* ]]; then
           git add . &>/dev/null
           git commit -m "$element $PERIOD" &>/dev/null
-#          git checkout 'backup/ZIP'
-          git checkout 'new'
-          git rebase "$branch" &>/dev/null
+          git checkout 'backup/ZIP'
+          git merge --squash "$branch" &>/dev/null
       fi
       rm -rf ./*
     done
   done
   cd "$GIT_FOLDER" || return
-  git checkout --orphan auxiliar new
-  git branch -D 'new'
-  git commit -m "revision_$PERIOD"
-  git checkout 'backup/ZIP'
-  git rebase --reapply-cherry-picks 'auxiliar' &>/dev/null
-  git branch -D 'auxiliar'
+  git checkout --orphan 'auxiliar' 'backup/ZIP'
+  git commit -m "ZIP $PERIOD"
   git checkout 'backup/ALL'
-  git rebase --reapply-cherry-picks 'backup/ZIP' >/dev/null
+  git rebase 'auxiliar'
+  git branch -D 'auxiliar'
   git tag -f "zip_$PERIOD" &>/dev/null
   pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
