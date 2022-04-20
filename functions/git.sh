@@ -38,7 +38,6 @@ function createBranch() {
   git checkout "$branch" &>/dev/null
   error=$?
   [[ "$error" -ne 0 ]] && git checkout -b "$branch" "$source"
-#  [[ "$source" == master ]] && rm -rf ./*
 }
 
 function pushAll() {
@@ -136,15 +135,15 @@ function revisionZip() {
       createBranch "$branch"
       [[ ! -d "$git_dir" ]] && mkdir -p "$git_dir"
       cp "$revision_dir/$element/"*.zip "$git_dir"
-#      [[ ! -f "$git_dir/revisions.csv" ]] && echo 'Revision,Hash' >"$git_dir/revisions.csv"
-#      jq '.[]' "$backup_dir/$element/revisions.json" | sed 's/\"//g' | sed 's/|/\,/g' >>"$git_dir/revisions.csv"
       if [[ $(git status) != *'nothing to commit, working tree clean'* ]]; then
           git add . &>/dev/null
           git commit -m "$element $PERIOD" &>/dev/null
       fi
-      git checkout 'backup/ZIP'
-      git merge "$branch" &>/dev/null
       rm -rf ./*
+      git checkout 'backup/ZIP'
+      git merge --squash "$branch" &>/dev/null
+      git add .
+      git commit -m "$element $PERIOD"
     done
   done
   cd "$GIT_FOLDER" || return
