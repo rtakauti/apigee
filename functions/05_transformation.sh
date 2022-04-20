@@ -11,9 +11,9 @@ function removeTransformation(){
 
     (
         cd "$bundle" || return
-        rm -rf manifests
-        rm "${element}.xml"
-        rm -rf resources
+        [[ -d manifests ]] && rm -rf manifests
+        [[ -d resources ]] && rm -rf resources
+        [[ -f "${element}.xml" ]] && rm "${element}.xml"
         (
             cd policies || return
             for file in FC-*.xml; do [[ -f "$file" ]] && rm "$file"; done
@@ -83,18 +83,22 @@ function transformApi(){
         copyTransformation
         7z a -r dev.zip "$bundle" >/dev/null
         for planet in "hml" "prd"; do
-            (
-                cd "$bundle/targets" || return
-                for file in *.xml; do
-                    [[ -f "$file" ]] && sed -i "${data["$planet","target"]}" "$file"
-                done
-            )
-            (
-                cd "$bundle/policies" || return
-                for file in "AM-CORS.xml" "ML-LogELK.xml"; do
-                    [[ -f "$file" ]] && sed -i "${data["$planet","$file"]}" "$file"
-                done
-            )
+            if [[ -d "$bundle/targets" ]]; then
+                (
+                    cd "$bundle/targets"
+                    for file in *.xml; do
+                        [[ -f "$file" ]] && sed -i "${data["$planet","target"]}" "$file"
+                    done
+                )
+            fi
+            if [[ -d "$bundle/policies" ]]; then
+                (
+                    cd "$bundle/policies"
+                    for file in "AM-CORS.xml" "ML-LogELK.xml"; do
+                        [[ -f "$file" ]] && sed -i "${data["$planet","$file"]}" "$file"
+                    done
+                )
+            fi
             7z a -r "${planet}.zip" "$bundle" >/dev/null
         done
         rm -rf "$bundle"
