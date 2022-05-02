@@ -33,6 +33,7 @@ EOF
   fi
 }
 
+
 function rearrangeFolder() {
   local list
   local backup_dir
@@ -56,18 +57,8 @@ function rearrangeFolder() {
   )
 }
 
-function createSShDeploy(){
-    local upload_dir
-    local file_shell
 
-    upload_dir="$ROOT_DIR/uploads/$CONTEXT/$ORG"
-    file_shell="$upload_dir/${ORG}_${CONTEXT}.sh"
-
-    mkdir -p "$upload_dir"
-    list=$(jq .[] "backup/$DATE/$ORG/$CONTEXT.json" | sed 's/"//g')
-    echo "$list" >"$upload_dir/${ORG}_${CONTEXT}.txt"
-    printf "$list" >"$TEMPO"
-
+function apis_deploy(){
     read -r -d '' deploy <<'EOF'
 #!/usr/bin/env bash
 
@@ -77,29 +68,27 @@ export PASSWORD=password
 export URL=http://example.com
 export PLANET=dev
 
-declare -a apis=(
+declare -a elements=(
 #CHANGE
 )
 
 function create(){
-    [[ -z "$api" ]] && api="$1"
+    [[ -z "$element" ]] && element="$1"
     curl --include --request POST "$URL/v1/organizations/#ORG/apis" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/json' \
     --data-raw '{
-        "name": "'"$api"'"
+        "name": "'"$element"'"
     }'
 }
 
-
 function upload(){
-
-    if [[ -z "$api" ]] ; then
-        api="$1"
-        if [[ -d "$api" ]]; then
+    if [[ -z "$element" ]] ; then
+        element="$1"
+        if [[ -d "$element" ]]; then
             (
-                cd "$api" || exit
-                curl --include --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$api" \
+                cd "$element"
+                curl --include --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$element" \
                 --user "$USERNAME:$PASSWORD" \
                 --header 'Content-Type: application/octet-stream' \
                 --upload-file "$PLANET.zip"
@@ -108,7 +97,7 @@ function upload(){
         fi
     fi
 
-    curl --include --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$api" \
+    curl --include --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$element" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/octet-stream' \
     --upload-file "$PLANET.zip"
@@ -119,26 +108,22 @@ function deploy(){
     local revision
 
     env="$1"
-    [[ -z "$api" ]] && api="$1"; env="$2"
-
-    revision=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$api/revisions" \
+    [[ -z "$element" ]] && element="$1"; env="$2"
+    revision=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$element/revisions" \
     --user "$USERNAME:$PASSWORD") | jq .[] | sed 's/"//g' | sort -nr | head -n1)
-
-    curl --include --request POST "$URL/v1/organizations/#ORG/environments/$env/apis/$api/revisions/$revision/deployments?override=true" \
+    curl --include --request POST "$URL/v1/organizations/#ORG/environments/$env/apis/$element/revisions/$revision/deployments?override=true" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/x-www-form-urlencoded'
 }
-
 
 function release(){
     local env
 
     env="$1"
-    [[ -z "$api" ]] && api="$1"; env="$2"
+    [[ -z "$element" ]] && element="$1"; env="$2"
     upload
     deploy "$env"
 }
-
 
 function undeploy(){
     local env
@@ -146,21 +131,18 @@ function undeploy(){
     local revision
 
     env="$1"
-    [[ -z "$api" ]] && api="$1"; env="$2"
-
-    revisions=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$api/revisions" \
+    [[ -z "$element" ]] && element="$1"; env="$2"
+    revisions=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$element/revisions" \
     --user "$USERNAME:$PASSWORD") | jq '.[]' | sed 's/"//g')
-
     for revision in $revisions; do
-        curl --include --request DELETE "$URL/v1/organizations/#ORG/environments/$env/apis/$api/revisions/$revision/deployments" \
+        curl --include --request DELETE "$URL/v1/organizations/#ORG/environments/$env/apis/$element/revisions/$revision/deployments" \
         --user "$USERNAME:$PASSWORD"
     done
-
 }
 
 function delete(){
-    [[ -z "$api" ]] && api="$1"
-    curl  --request DELETE "$URL/v1/organizations/#ORG/apis/$api" \
+    [[ -z "$element" ]] && element="$1"
+    curl  --request DELETE "$URL/v1/organizations/#ORG/apis/$element" \
     --user "$USERNAME:$PASSWORD"
 }
 
@@ -168,23 +150,22 @@ function remove(){
     local environments
     local environment
 
-    [[ -z "$api" ]] && api="$1"
+    [[ -z "$element" ]] && element="$1"
     environments=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/environments" \
     --user "$USERNAME:$PASSWORD") | jq '.[]' | sed 's/"//g')
-    for environment in $environments; do undeploy "$environment" "$api"; done
+    for environment in $environments; do undeploy "$environment" "$element"; done
     delete
 }
-
 
 function mass(){
     local action
 
     action="$1"
     IFS=$'\n'
-    for api in "${apis[@]}"; do
-        if [[ -d "$api" ]]; then
+    for element in "${elements[@]}"; do
+        if [[ -d "$element" ]]; then
             (
-                cd "$api" || exit
+                cd "$element"
                 "$action" "${@:2}"
             )
         fi
@@ -194,7 +175,174 @@ function mass(){
 "$1" "${@:2}"
 
 EOF
+}
 
+
+function apiproducts_deploy(){
+    read -r -d '' deploy <<'EOF'
+#!/usr/bin/env bash
+
+export USERNAME=email
+export PASSWORD=password
+
+export URL=http://example.com
+export PLANET=dev
+
+
+declare -a elements=(
+#CHANGE
+)
+
+function create(){
+    if [[ -z "$element" ]] ; then
+        element="$1"
+        if [[ -d "$element" ]]; then
+            cd "$element"
+            data=$(cat <"$PLANET.json")
+        fi
+    fi
+    curl --include --request POST "$URL/v1/organizations/#ORG/apiproducts" \
+    --user "$USERNAME:$PASSWORD" \
+    --header 'Content-Type: application/json' \
+    --data-raw "$data"
+}
+
+
+function mass(){
+    local action
+    local data
+
+    action="$1"
+    IFS=$'\n'
+    for element in "${elements[@]}"; do
+        if [[ -d "$element" ]]; then
+            (
+                cd "$element"
+                data=$(cat <"$PLANET.json")
+                "$action" "${@:2}"
+            )
+        fi
+    done
+}
+
+"$1" "${@:2}"
+
+EOF
+}
+
+
+function companies_deploy(){
+    local item
+
+    for item in $list; do
+        cp -r "backup/$DATE/$ORG/$item" "$ROOT_DIR/uploads/$CONTEXT/$ORG"
+    done
+    read -r -d '' deploy <<'EOF'
+#!/usr/bin/env bash
+
+export USERNAME=email
+export PASSWORD=password
+
+export URL=http://example.com
+export PLANET=dev
+
+
+declare -a elements=(
+#CHANGE
+)
+
+function create(){
+    [[ -z "$element" ]] && element="$1"
+    curl --include --request POST "$URL/v1/organizations/#ORG/companies" \
+    --user "$USERNAME:$PASSWORD" \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "name": "'"$element"'"
+    }'
+}
+
+
+function remove(){
+    [[ -z "$element" ]] && element="$1"
+    curl  --request DELETE "$URL/v1/organizations/#ORG/companies/$element" \
+    --user "$USERNAME:$PASSWORD"
+}
+
+
+function mass(){
+    local action
+    local element
+
+    action="$1"
+    IFS=$'\n'
+    for element in "${elements[@]}"; do "$action" "${@:2}"; done
+}
+
+"$1" "${@:2}"
+
+EOF
+}
+
+
+function apps_deploy(){
+    read -r -d '' deploy <<'EOF'
+#!/usr/bin/env bash
+
+export USERNAME=email
+export PASSWORD=password
+
+export URL=http://example.com
+export PLANET=dev
+
+
+declare -a elements=(
+#CHANGE
+)
+
+function create(){
+    [[ -z "$element" ]] && element="$1"
+    curl --include --request POST "$URL/v1/organizations/#ORG/companies" \
+    --user "$USERNAME:$PASSWORD" \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "name": "'"$element"'"
+    }'
+}
+
+
+function remove(){
+    [[ -z "$element" ]] && element="$1"
+    curl  --request DELETE "$URL/v1/organizations/#ORG/companies/$element" \
+    --user "$USERNAME:$PASSWORD"
+}
+
+
+function mass(){
+    local action
+    local element
+
+    action="$1"
+    IFS=$'\n'
+    for element in "${elements[@]}"; do "$action" "${@:2}"; done
+}
+
+"$1" "${@:2}"
+
+EOF
+}
+
+
+function createDeploy(){
+    local upload_dir
+    local file_shell
+
+    upload_dir="$ROOT_DIR/uploads/$CONTEXT/$ORG"
+    file_shell="$upload_dir/${ORG}_${CONTEXT}.sh"
+    mkdir -p "$upload_dir"
+    list=$(jq .[] "backup/$DATE/$ORG/_LIST.json" | sed 's/"//g')
+    echo "$list" >"$upload_dir/${ORG}_${CONTEXT}.txt"
+    printf "$list" >"$TEMPO"
+    [[ -n "$(LC_ALL=C type -t "${CONTEXT}_deploy")" && "$(LC_ALL=C type -t "${CONTEXT}_deploy")" = function ]] && "${CONTEXT}_deploy"
     echo "$deploy" | sed $'/#CHANGE/{e cat $TEMPO\n}' >"$file_shell"
     sed -i 's/#CHANGE//' "$file_shell"
     sed -i 's/#ORG/'"$ORG"'/' "$file_shell"

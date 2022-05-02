@@ -8,13 +8,18 @@ function optimize() {
   local expanded
   local quantity
   local context
+  local app_name
+  local backup_dir
 
   expanded=$(cat <"backup/$DATE/$ORG/_EXPANDED.json")
   echo "$expanded" | jq '[.app[].name]' >"backup/$DATE/$ORG/_LIST.json"
   quantity=$(echo "$expanded" | jq '.app | length')
   for index in $(seq 0 $((quantity - 1))); do
     context=$(echo "$expanded" | jq ".app[$index]")
-    echo "$context" >"backup/$DATE/$ORG/$(echo "$context" | jq ".name" | sed 's/\"//g')".json
+    app_name=$(echo "$context" | jq ".name" | sed 's/\"//g')
+    backup_dir="backup/$DATE/$ORG/$app_name"
+    mkdir -p "$backup_dir"
+    echo "$context" >"$backup_dir/$app_name".json
   done
 }
 
@@ -23,6 +28,9 @@ function hide() {
   mv "backup/$DATE/TEMP.json" "backup/$DATE/$ORG/_EXPANDED.json"
 }
 
+setContext
+rm -rf "$ROOT_DIR/uploads/$CONTEXT"
+
 for ORG in ${ORGS[*]}; do
   makeDir
   header
@@ -30,6 +38,7 @@ for ORG in ${ORGS[*]}; do
   hide
   makeBackupList "organizations/$ORG/$CONTEXT"
   optimize
+  createDeploy
 done
 copy
 compress

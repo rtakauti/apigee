@@ -99,11 +99,11 @@ function createRevisions() {
       local upload_dir
       local file
 
-      [[ $revision != $(echo "${revisions[*]}" | sort -nr | head -n1) ]] && return
+      [[ "$revision" != $(echo "${revisions[*]}" | sort -nr | head -n1) ]] && return
       upload_dir="$ROOT_DIR/uploads/$CONTEXT/$ORG"
       mkdir -p "$upload_dir/$element"
       cp "$TEMP" "$upload_dir/$element/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
-      transform
+#      transform
       status "$CURL_RESULT backup ${CONTEXT^^} last revision done see uploads/${element}_rev${revision}_$(TZ=GMT date +"%Y_%m_%d").zip"
     }
 
@@ -203,7 +203,7 @@ function createRevisions() {
     IFS=$'\n'
     backup_dir="$ROOT_DIR/$CONTEXT/backup/$DATE/$ORG/$element"
     mkdir -p "$backup_dir"
-    mv "$backup_dir.json" "$backup_dir/$element.json"
+#    mv "$backup_dir.json" "$backup_dir/$element.json"
     for action in "${actions[@]}"; do
       for revision in $revisions; do
         rev=$(printf "%06d" "$revision")
@@ -212,9 +212,9 @@ function createRevisions() {
         $action
       done
     done
-    truncate -s -1 "$backup_dir/revisions.txt"
-    jq -R -s -c 'split("\n")' "$backup_dir/revisions.txt" | jq '.' >"$backup_dir/revisions.json"
-    rm "$backup_dir/revisions.txt"
+#    truncate -s -1 "$backup_dir/revisions.txt"
+#    jq -R -s -c 'split("\n")' "$backup_dir/revisions.txt" | jq '.' >"$backup_dir/revisions.json"
+#    rm "$backup_dir/revisions.txt"
 #    audit
   fi
 }
@@ -280,8 +280,8 @@ function makeBackupSub() {
     setFile
     status "$CURL_RESULT backup ${CONTEXT^^} done see $backup_dir/$file".json
     ELEMENT=$(jq '.' "$TEMP")
-    mkdir -p "$backup_dir"
-    echo "$ELEMENT" >"$backup_dir/$file".json
+    mkdir -p "$backup_dir/$element"
+    echo "$ELEMENT" >"$backup_dir/$element/$file".json
     createRevisions "$URI/revisions/item"
     createResourceFile "$URI/resourcefiles"
   done
