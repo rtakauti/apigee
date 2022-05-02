@@ -4,6 +4,9 @@ source ../env_var.sh
 source "$ROOT_DIR/functions.sh"
 source "$ROOT_DIR/organizations.sh"
 
+setContext
+rm -rf "$ROOT_DIR/uploads/$CONTEXT"
+
 for ORG in ${ORGS[*]}; do
 
   makeDir
@@ -12,8 +15,10 @@ for ORG in ${ORGS[*]}; do
   makeBackupList "organizations/$ORG/$CONTEXT"
   cp "backup/$DATE/$ORG/$CONTEXT.json" "backup/$DATE/$ORG/_LIST.json"
   makeBackupSub "organizations/$ORG/$CONTEXT/element"
-  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'developers'
-  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'apps'
+  createDeploy
+  transform
+#  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'developers'
+#  makeBackupSub "organizations/$ORG/$CONTEXT/element" 'apps'
 done
 copy
 compress
