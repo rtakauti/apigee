@@ -110,51 +110,50 @@ function revision() {
 }
 
 function revisionZip() {
-  local org
-  local context
-  local object
-  local element
-  local branch
-  local git_dir
-  local revision_dir
+    local org
+    local context
+    local object
+    local element
+    local branch
+    local git_dir
+    local revision_dir
 
-  context=$1
-  object=$2
-  createBranch 'backup/ALL'
-  createBranch 'backup/ZIP'
-  extractContextBackup
-
-  for org in "${ORGS[@]}"; do
-    backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$org"
-    revision_dir="$ROOT_DIR/revisions/$context/$org"
-    [[ ! -d "$revision_dir" ]] && continue
-    for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
-      [[ "$element" != *"$object"* ]] || [[ ! -d "$revision_dir/$element" ]] && continue
-      branch="zip/$org/$context/$element"
-      git_dir="$GIT_FOLDER/$branch"
-      createBranch "$branch"
-      [[ ! -d "$git_dir" ]] && mkdir -p "$git_dir"
-      cp "$revision_dir/$element/"*.zip "$git_dir"
-      if [[ $(git status) != *'nothing to commit, working tree clean'* ]]; then
-          git add . &>/dev/null
-          git commit -m "$element $PERIOD" &>/dev/null
-      fi
-      rm -rf ./*
-      git checkout 'backup/ZIP'
-      git merge --squash "$branch" &>/dev/null
-      git add .
-      git commit -m "$element $PERIOD"
+    context=$1
+    object=$2
+    createBranch 'backup/ALL'
+    createBranch 'backup/ZIP'
+    extractContextBackup
+    for org in "${ORGS[@]}"; do
+        backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$org"
+        revision_dir="$ROOT_DIR/revisions/$context/$org"
+        [[ ! -d "$revision_dir" ]] && continue
+        for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
+            [[ "$element" != *"$object"* ]] || [[ ! -d "$revision_dir/$element" ]] && continue
+            branch="zip/$org/$context/$element"
+            git_dir="$GIT_FOLDER/$branch"
+            createBranch "$branch"
+            [[ ! -d "$git_dir" ]] && mkdir -p "$git_dir"
+            cp "$revision_dir/$element/"*.zip "$git_dir"
+            if [[ $(git status) != *'nothing to commit, working tree clean'* ]]; then
+                git add . &>/dev/null
+                git commit -m "$element $PERIOD" &>/dev/null
+            fi
+            rm -rf ./*
+            git checkout 'backup/ZIP'
+            git merge --squash "$branch" &>/dev/null
+            git add .
+            git commit -m "$element $PERIOD"
+        done
     done
-  done
-  cd "$GIT_FOLDER" || return
-  git checkout --orphan 'auxiliar' 'backup/ZIP'
-  git commit -m "ZIP $PERIOD"
-  git checkout 'backup/ALL'
-  git rebase 'auxiliar'
-  git branch -D 'auxiliar'
-  git tag -f "zip_$PERIOD" &>/dev/null
-  pushAll
-  rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
+    cd "$GIT_FOLDER" || return
+    git checkout --orphan 'auxiliar' 'backup/ZIP'
+    git commit -m "ZIP $PERIOD"
+    git checkout 'backup/ALL'
+    git rebase 'auxiliar'
+    git branch -D 'auxiliar'
+    git tag -f "zip_$PERIOD" &>/dev/null
+    pushAll
+    rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
 }
 
 
@@ -183,7 +182,6 @@ function json() {
     fi
     rm -rf ./*
     git checkout 'backup/JSON' &>/dev/null
-#    git rebase "$branch" &>/dev/null
     git merge --squash "$branch" &>/dev/null
     git add .
     git commit -m "$CONTEXT $PERIOD"
@@ -193,7 +191,6 @@ function json() {
   createBranch 'backup/ALL'
   createBranch 'backup/JSON'
   extractContextBackup
-
   if [[ -f "$ROOT_DIR/$context/backup/$PERIOD"/_LIST.json ]]; then
     branch="json/$context"
     createCommit
@@ -202,15 +199,11 @@ function json() {
       if [[ -f "$ROOT_DIR/$context/backup/$PERIOD/$ORG"/_LIST.json ]]; then
         branch="json/$ORG/$context"
         backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$ORG"
-    #        if [[ "$context" == 'apis' ]] || [[ "$context" == 'sharedflows' ]]; then
         for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
             branch="json/$ORG/$context/$element"
             backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$ORG/$element"
             createCommit
         done
-    #        else
-    #          createCommit
-    #        fi
       else
         source "$ROOT_DIR/environments.sh"
         for ENV in "${ENVS[@]}"; do
@@ -223,18 +216,14 @@ function json() {
       fi
     done
   fi
-
   cd "$GIT_FOLDER" || return
   git checkout --orphan 'auxiliar' 'backup/JSON'
   git commit -m "JSON $PERIOD"
   git checkout 'backup/ALL'
   git rebase 'auxiliar'
   git branch -D 'auxiliar'
-#  [[ $(git status) != *'nothing to commit, working tree clean'* ]] && git checkout -- .
-#  git checkout 'backup/ALL' &>/dev/null
-#  git rebase 'backup/JSON' &>/dev/null
   git tag -f "json_$PERIOD" &>/dev/null
-#  pushAll
+  pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
 }
 

@@ -2,11 +2,11 @@
 
 function mass() {
 #  activity 'organizations'
-  activity 'users'
+#  activity 'users'
 #  activity 'deployments'
 #  activity 'environments'
   activity 'companies'
-  activity 'developers'
+#  activity 'developers'
 #  activity 'sharedflows'
   activity 'apis'
   activity 'apps'
