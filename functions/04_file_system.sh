@@ -108,7 +108,10 @@ function deploy(){
     local revision
 
     env="$1"
-    [[ -z "$element" ]] && element="$1"; env="$2"
+    if [[ -z "$element" ]]; then
+        element="$1"
+        env="$2"
+    fi
     revision=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$element/revisions" \
     --user "$USERNAME:$PASSWORD") | jq .[] | sed 's/"//g' | sort -nr | head -n1)
     curl --request POST "$URL/v1/organizations/#ORG/environments/$env/apis/$element/revisions/$revision/deployments?override=true" \
@@ -120,7 +123,10 @@ function release(){
     local env
 
     env="$1"
-    [[ -z "$element" ]] && element="$1"; env="$2"
+    if [[ -z "$element" ]]; then
+        element="$1"
+        env="$2"
+    fi
     upload
     deploy "$env"
 }
@@ -131,7 +137,10 @@ function undeploy(){
     local revision
 
     env="$1"
-    [[ -z "$element" ]] && element="$1"; env="$2"
+    if [[ -z "$element" ]]; then
+        element="$1"
+        env="$2"
+    fi
     revisions=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$element/revisions" \
     --user "$USERNAME:$PASSWORD") | jq '.[]' | sed 's/"//g')
     for revision in $revisions; do
