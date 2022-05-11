@@ -7,7 +7,6 @@ object=""
 
 setContext
 clone
-#createSsh "$CONTEXT"
 json "$CONTEXT"
 #revision "$CONTEXT" "$object"
 #revisionZip "$CONTEXT" "$object"

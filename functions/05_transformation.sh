@@ -25,6 +25,7 @@ function copyRevision(){
     declare -a services=(
     -client-portal-
     -backoffice-
+    -tef-embarcado-
     motor-pix-v
     conciliation-v
     ctf-cloud-v
@@ -34,7 +35,8 @@ function copyRevision(){
     ["${services[1]}"]="common"
     ["${services[2]}"]="common"
     ["${services[3]}"]="common"
-    ["${services[4]}"]="ctf-cloud"
+    ["${services[4]}"]="common"
+    ["${services[5]}"]="ctf-cloud"
     )
 
     for service in "${services[@]}"; do
