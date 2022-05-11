@@ -156,18 +156,7 @@ function revisionZip() {
     rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
 }
 
-
-function json() {
-  local ORG
-  local ENV
-  local context
-  local element
-  local branch
-  local text
-  local git_dir
-  local backup_dir
-
-  function createCommit() {
+function createCommit() {
     local message
 
     message="$context"
@@ -187,6 +176,16 @@ function json() {
     git commit -m "$CONTEXT $PERIOD"
   }
 
+function json() {
+  local ORG
+  local ENV
+  local context
+  local element
+  local branch
+  local text
+  local git_dir
+  local backup_dir
+
   context=$1
   createBranch 'backup/ALL'
   createBranch 'backup/JSON'
@@ -197,9 +196,7 @@ function json() {
   else
     for ORG in "${ORGS[@]}"; do
       if [[ -f "$ROOT_DIR/$context/backup/$PERIOD/$ORG"/_LIST.json ]]; then
-        branch="json/$ORG/$context"
-        backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$ORG"
-        for element in $(jq '.[]' "$backup_dir/_LIST".json | sed 's/\"//g'); do
+        for element in $(jq '.[]' "$ROOT_DIR/$context/backup/$PERIOD/$ORG/_LIST".json | sed 's/\"//g'); do
             branch="json/$ORG/$context/$element"
             backup_dir="$ROOT_DIR/$context/backup/$PERIOD/$ORG/$element"
             createCommit
@@ -223,8 +220,44 @@ function json() {
   git rebase 'auxiliar'
   git branch -D 'auxiliar'
   git tag -f "json_$PERIOD" &>/dev/null
-  pushAll
-  rm -rf "$ROOT_DIR/$context/backup/$PERIOD"
+#  pushAll
+  rm -rf "$ROOT_DIR/$context/backup/$PERIOD" &>/dev/null
 }
 
+function uploads(){
+    local branch
+    local context
+    local ORG
+    local folder
 
+    context="$1"
+    createBranch 'backup/ALL'
+    createBranch 'backup/UPLOAD'
+    (
+        cd "$GIT_FOLDER" || return
+        for ORG in "${ORGS[@]}"; do
+            branch="uploads/$ORG/$context"
+            createBranch "$branch"
+            mkdir -p "$GIT_FOLDER/$branch"
+            cp "$ROOT_DIR/uploads/$context/$ORG/"${ORG}_${context}.* "$GIT_FOLDER/$branch"
+            (
+                cd "$ROOT_DIR/uploads/$context/$ORG"
+                for folder in */; do cp -r "$folder" "$GIT_FOLDER/$branch/"; done
+            )
+            git add . &>/dev/null
+            git commit -m "$context $PERIOD" &>/dev/null
+            rm -rf ./*
+        done
+        git checkout 'backup/UPLOAD'
+        git merge --squash "$branch" &>/dev/null
+        git add .
+        git commit -m "$context $PERIOD"
+        git checkout --orphan 'auxiliar' 'backup/UPLOAD'
+        git commit -m "UPLOAD $PERIOD"
+        git checkout 'backup/ALL'
+        git rebase 'auxiliar'
+        git branch -D 'auxiliar'
+        git tag -f "uploaad_$PERIOD" &>/dev/null
+        pushAll
+    )
+}

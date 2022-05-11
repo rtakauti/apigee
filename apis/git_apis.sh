@@ -8,5 +8,6 @@ object=""
 setContext
 clone
 json "$CONTEXT"
-#revision "$CONTEXT" "$object"
-#revisionZip "$CONTEXT" "$object"
+uploads "$CONTEXT"
+revision "$CONTEXT" "$object"
+revisionZip "$CONTEXT" "$object"

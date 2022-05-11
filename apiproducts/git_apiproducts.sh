@@ -7,3 +7,4 @@ source "$ROOT_DIR/organizations.sh"
 setContext
 clone
 json "$CONTEXT"
+uploads "$CONTEXT"
