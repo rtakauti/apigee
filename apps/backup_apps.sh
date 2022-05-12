@@ -35,10 +35,11 @@ for ORG in ${ORGS[*]}; do
   makeDir
   header
   makeBackupList "organizations/$ORG/$CONTEXT?expand=true" 'EXPANDED'
-  hide
+#  hide
   makeBackupList "organizations/$ORG/$CONTEXT"
   optimize
   createDeploy
+  transform
 done
 copy
 compress

@@ -25,6 +25,7 @@ function copyRevision(){
     declare -a services=(
     -client-portal-
     -backoffice-
+    -tef-embarcado-
     motor-pix-v
     conciliation-v
     ctf-cloud-v
@@ -34,7 +35,8 @@ function copyRevision(){
     ["${services[1]}"]="common"
     ["${services[2]}"]="common"
     ["${services[3]}"]="common"
-    ["${services[4]}"]="ctf-cloud"
+    ["${services[4]}"]="common"
+    ["${services[5]}"]="ctf-cloud"
     )
 
     for service in "${services[@]}"; do
@@ -133,30 +135,29 @@ function transform(){
     local object
 
     object="$obj"
-    [[ "$CONTEXT" == "apis" ]] && apis_transform; return
-    for item in $list; do
-        cp -r "backup/$DATE/$ORG/$item" "$ROOT_DIR/uploads/$CONTEXT/$ORG"
-        if [[ -d "$ROOT_DIR/uploads/$CONTEXT/$ORG/$item" ]]; then
-            (
-            cd "$ROOT_DIR/uploads/$CONTEXT/$ORG/$item"
-            for planet in "dev" "hml" "prd"; do
-                removeTransformation
-            done
-            sed -i 's/"dev"/"hti"/' hml.json
-            sed -i 's/"dev"/"prd"/' prd.json
-            )
-        fi
-    done
+    if [[ "$CONTEXT" == "apis" ]]; then
+        apis_transform
+    else
+        for item in $list; do
+            cp -r "backup/$DATE/$ORG/$item" "$ROOT_DIR/uploads/$CONTEXT/$ORG"
+            if [[ -d "$ROOT_DIR/uploads/$CONTEXT/$ORG/$item" ]]; then
+                (
+                cd "$ROOT_DIR/uploads/$CONTEXT/$ORG/$item"
+                for planet in "dev" "hml" "prd"; do
+                    removeTransformation
+                done
+                sed -i 's/"dev"/"hti"/' hml.json
+                sed -i 's/"dev"/"prd"/' prd.json
+                )
+            fi
+        done
+    fi
 }
 
 
 function update(){
-
-    if [[ -z "$api" ]] ; then
-        api="$1"
-    fi
-
-    curl --include --request POST "$URL/v1/organizations/auttar/apis/$api/revisions/2/policies/AM-CORS" \
+    [[ -z "$api" ]] && api="$1"
+    curl --request POST "$URL/v1/organizations/auttar/apis/$api/revisions/2/policies/AM-CORS" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/xml' \
     --data-raw '<AssignMessage async="false" continueOnError="false" enabled="true" name="AM-CORS">
@@ -177,27 +178,7 @@ function update(){
 }
 
 
-function app(){
-    curl --location --request POST  "$URL/v1/organizations/auttar/companies/CTF-Cloud/apps" \
-    --user "$USERNAME:$PASSWORD" \
-    --header 'Content-Type: application/json' \
-    --data-raw '{
-        "apiProducts":["CTF-Cloud"],
-        "name": "CTF-Cloud"
-        }'
-}
-
 function delete(){
-    curl --location --request DELETE "$URL/v1/organizations/auttar/companies/CTF-Cloud/apps/CTF-Cloud/keys/HxL3DupN6UaOfaFOqGEi7gN5Ejgq72cT" \
+    curl --request DELETE "$URL/v1/organizations/auttar/companies/CTF-Cloud/apps/CTF-Cloud/keys/HxL3DupN6UaOfaFOqGEi7gN5Ejgq72cT" \
     --user "$USERNAME:$PASSWORD"
-}
-
-function import(){
-    curl --location --request POST "$URL/v1/organizations/auttar/companies/CTF-Cloud/apps/CTF-Cloud/keys/create" \
-        --user "$USERNAME:$PASSWORD" \
-        --header 'Content-Type: application/json' \
-        --data-raw '{
-            "consumerKey":"'"$SUBSCRIPTION_KEY"'",
-            "consumerSecret":"'"$COMPANY"'"
-         }'
 }

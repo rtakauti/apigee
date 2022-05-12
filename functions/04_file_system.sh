@@ -74,7 +74,7 @@ declare -a elements=(
 
 function create(){
     [[ -z "$element" ]] && element="$1"
-    curl --include --request POST "$URL/v1/organizations/#ORG/apis" \
+    curl --request POST "$URL/v1/organizations/#ORG/apis" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/json' \
     --data-raw '{
@@ -88,7 +88,7 @@ function upload(){
         if [[ -d "$element" ]]; then
             (
                 cd "$element"
-                curl --include --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$element" \
+                curl --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$element" \
                 --user "$USERNAME:$PASSWORD" \
                 --header 'Content-Type: application/octet-stream' \
                 --upload-file "$PLANET.zip"
@@ -97,7 +97,7 @@ function upload(){
         fi
     fi
 
-    curl --include --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$element" \
+    curl --request POST "$URL/v1/organizations/#ORG/apis?action=import&name=$element" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/octet-stream' \
     --upload-file "$PLANET.zip"
@@ -108,10 +108,13 @@ function deploy(){
     local revision
 
     env="$1"
-    [[ -z "$element" ]] && element="$1"; env="$2"
+    if [[ -z "$element" ]]; then
+        element="$1"
+        env="$2"
+    fi
     revision=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$element/revisions" \
     --user "$USERNAME:$PASSWORD") | jq .[] | sed 's/"//g' | sort -nr | head -n1)
-    curl --include --request POST "$URL/v1/organizations/#ORG/environments/$env/apis/$element/revisions/$revision/deployments?override=true" \
+    curl --request POST "$URL/v1/organizations/#ORG/environments/$env/apis/$element/revisions/$revision/deployments?override=true" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/x-www-form-urlencoded'
 }
@@ -120,7 +123,10 @@ function release(){
     local env
 
     env="$1"
-    [[ -z "$element" ]] && element="$1"; env="$2"
+    if [[ -z "$element" ]]; then
+        element="$1"
+        env="$2"
+    fi
     upload
     deploy "$env"
 }
@@ -131,11 +137,14 @@ function undeploy(){
     local revision
 
     env="$1"
-    [[ -z "$element" ]] && element="$1"; env="$2"
+    if [[ -z "$element" ]]; then
+        element="$1"
+        env="$2"
+    fi
     revisions=$(echo $(curl --silent --request GET "$URL/v1/organizations/#ORG/apis/$element/revisions" \
     --user "$USERNAME:$PASSWORD") | jq '.[]' | sed 's/"//g')
     for revision in $revisions; do
-        curl --include --request DELETE "$URL/v1/organizations/#ORG/environments/$env/apis/$element/revisions/$revision/deployments" \
+        curl --request DELETE "$URL/v1/organizations/#ORG/environments/$env/apis/$element/revisions/$revision/deployments" \
         --user "$USERNAME:$PASSWORD"
     done
 }
@@ -201,7 +210,7 @@ function create(){
             data=$(cat <"$PLANET.json")
         fi
     fi
-    curl --include --request POST "$URL/v1/organizations/#ORG/apiproducts" \
+    curl --request POST "$URL/v1/organizations/#ORG/apiproducts" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/json' \
     --data-raw "$data"
@@ -232,11 +241,6 @@ EOF
 
 
 function companies_deploy(){
-    local item
-
-    for item in $list; do
-        cp -r "backup/$DATE/$ORG/$item" "$ROOT_DIR/uploads/$CONTEXT/$ORG"
-    done
     read -r -d '' deploy <<'EOF'
 #!/usr/bin/env bash
 
@@ -253,7 +257,7 @@ declare -a elements=(
 
 function create(){
     [[ -z "$element" ]] && element="$1"
-    curl --include --request POST "$URL/v1/organizations/#ORG/companies" \
+    curl --request POST "$URL/v1/organizations/#ORG/companies" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/json' \
     --data-raw '{
@@ -264,7 +268,7 @@ function create(){
 
 function remove(){
     [[ -z "$element" ]] && element="$1"
-    curl  --request DELETE "$URL/v1/organizations/#ORG/companies/$element" \
+    curl --request DELETE "$URL/v1/organizations/#ORG/companies/$element" \
     --user "$USERNAME:$PASSWORD"
 }
 
@@ -301,10 +305,11 @@ declare -a elements=(
 
 function create(){
     [[ -z "$element" ]] && element="$1"
-    curl --include --request POST "$URL/v1/organizations/#ORG/companies" \
+    curl --request POST "$URL/v1/organizations/#ORG/companies/$element/apps" \
     --user "$USERNAME:$PASSWORD" \
     --header 'Content-Type: application/json' \
     --data-raw '{
+        "apiProducts": ["'"$element"'"],
         "name": "'"$element"'"
     }'
 }
@@ -312,8 +317,19 @@ function create(){
 
 function remove(){
     [[ -z "$element" ]] && element="$1"
-    curl  --request DELETE "$URL/v1/organizations/#ORG/companies/$element" \
+    curl --request DELETE "$URL/v1/organizations/#ORG/apps/$element" \
     --user "$USERNAME:$PASSWORD"
+}
+
+
+function import(){
+    curl --request POST "$URL/v1/organizations/#ORG/companies/$element/apps/$element/keys/create" \
+    --user "$USERNAME:$PASSWORD" \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "consumerKey":"#REPLACE",
+        "consumerSecret":"#REPLACE"
+     }'
 }
 
 
