@@ -220,7 +220,7 @@ function json() {
   git rebase 'auxiliar'
   git branch -D 'auxiliar'
   git tag -f "json_$PERIOD" &>/dev/null
-#  pushAll
+  pushAll
   rm -rf "$ROOT_DIR/$context/backup/$PERIOD" &>/dev/null
 }
 
