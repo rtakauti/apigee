@@ -50,6 +50,7 @@ function copyRevision(){
             cp main.xml "$upload_dir/$item/$bundle/"
             7z x proxy.zip >/dev/null
             tr "\n" "|" < "$upload_dir/$item/$bundle/proxies/default.xml" | grep -o '<Flows>.*</Flows>' | sed 's/\(<Flows>\|<\/Flows>\)//g;s/|/\n/g' >"$TEMPO"
+#            cat flows.txt >>"$TEMPO"
             cat proxy.xml | sed $'/<!--#CHANGE1-->/{e cat $TEMPO\n}' >default1.xml
             tr "\n" "|" < "$upload_dir/$item/$bundle/proxies/default.xml" | grep -o '</PostClientFlow>.*</ProxyEndpoint>' | sed 's/\(<\/PostClientFlow>\|<\/ProxyEndpoint>\)//g;s/|/\n/g' >"$TEMPO"
             cat default1.xml | sed $'/<!--#CHANGE2-->/{e cat $TEMPO\n}' >default2.xml

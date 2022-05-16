@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RaiseFault async="false" continueOnError="false" enabled="true" name="RF-404Error">
+    <DisplayName>RF-404Error</DisplayName>
+    <Properties/>
+    <FaultResponse>
+        <Set>
+            <Headers/>
+            <Payload contentType="application/json">
+            {
+                "message": "Not Found",
+                "name": "GatewayClientError",
+                "status_code": 404,
+                "details": [
+                    {
+                        "status": "DENIED",
+                        "error_code": "GENERIC-404",
+                        "description": "Not Found",
+                        "description_detail": "Resource not found"
+                    }
+                ]
+            }
+            </Payload>
+            <StatusCode>404</StatusCode>
+            <ReasonPhrase>Not Found</ReasonPhrase>
+        </Set>
+    </FaultResponse>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+</RaiseFault>

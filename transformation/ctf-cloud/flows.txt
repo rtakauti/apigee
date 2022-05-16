@@ -1,0 +1,8 @@
+        <Flow name="NotFound">
+            <Request>
+                <Step>
+                    <Name>RF-404Error</Name>
+                </Step>
+            </Request>
+            <Response/>
+        </Flow>
